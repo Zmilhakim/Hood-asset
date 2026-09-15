@@ -82,7 +82,7 @@ export default function LearnPage() {
           block explorer, or point the app at your own RPC and compare.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link href="/" className={buttonClasses("flame")}>
+          <Link href="/board" className={buttonClasses("flame")}>
             Back to the board
           </Link>
           <Link href="/launch" className={buttonClasses("quiet")}>

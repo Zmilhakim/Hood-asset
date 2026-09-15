@@ -1,12 +1,13 @@
 # Hood-asset
 
 Brand assets for the Hood universe, plus **Hoodpad** — a launchpad on Robinhood
-Chain (chain id 4663).
+Chain (chain id 4663), ticker **$HPAD**.
 
 ```
-hoodpad/     the web app: the board, the launch form, the dashboard
+hoodpad/     the web app: landing, board, launch form, dashboard
 contracts/   the launchpad contracts and their tests
-*.png        logos and social art for the Hood tokens
+brand/       logo, avatar, banner and OG image, all generated from source
+*.png        the original Hood character art
 ```
 
 Hoodpad posts every token and every drop to one on-chain board. A launch is a
@@ -15,8 +16,17 @@ pool, and the position is locked where nobody — including whoever posted it �
 can take it back. Trading fees stay claimable by the poster; the liquidity does
 not.
 
-Start with [`contracts/README.md`](contracts/README.md) for the mechanism and
-[`hoodpad/README.md`](hoodpad/README.md) for running the app.
+| Route        | What it is                                                    |
+| ------------ | ------------------------------------------------------------- |
+| `/`          | The pitch: what it does, who it was built for, straight answers |
+| `/board`     | The live feed of notices, read from the chain                  |
+| `/launch`    | Post a notice                                                  |
+| `/dashboard` | Your notices and the fees your locked positions earned         |
+| `/learn`     | The mechanism, and what it does not promise                    |
 
-> Not audited, and not deployed yet. The app reads that state honestly rather
-> than filling the board with placeholders.
+Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
+[`hoodpad/README.md`](hoodpad/README.md) for running the app, and
+[`brand/README.md`](brand/README.md) for the logo and social art.
+
+> Not audited, and not deployed to Robinhood Chain. The app reads that state
+> honestly rather than filling the board with placeholders.

@@ -12,6 +12,9 @@ export function SiteFooter() {
           </p>
         </div>
         <nav className="micro flex flex-wrap gap-x-4 gap-y-2 text-paper/60">
+          <Link href="/board" className="hover:text-flame">
+            The board
+          </Link>
           <Link href="/learn" className="hover:text-flame">
             How it works
           </Link>

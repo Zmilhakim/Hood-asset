@@ -8,7 +8,7 @@ import { Mark } from "@/components/ui/Mark";
 import { clsx } from "@/lib/clsx";
 
 const NAV = [
-  { href: "/", label: "Board" },
+  { href: "/board", label: "Board" },
   { href: "/launch", label: "Launch" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/learn", label: "Learn" },

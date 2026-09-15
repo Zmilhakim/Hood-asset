@@ -155,7 +155,7 @@ export function LaunchForm() {
           including by you.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link href="/" className={buttonClasses("flame")}>
+          <Link href="/board" className={buttonClasses("flame")}>
             See the board
           </Link>
           <a href={explorerTx(hash)} target="_blank" rel="noreferrer noopener" className={buttonClasses("quiet")}>
