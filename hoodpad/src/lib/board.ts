@@ -18,12 +18,12 @@ export function useBoardStats() {
     query: { enabled: BOARD_IS_OPEN },
   });
 
-  const data = query.data as readonly [bigint, bigint, bigint, bigint, bigint] | undefined;
+  const data = query.data as readonly [bigint, bigint, bigint, bigint] | undefined;
 
   return {
     ...query,
     stats: data
-      ? { tokens: data[0], drops: data[1], lastLaunch: data[2], postingFee: data[3], fixedSupply: data[4] }
+      ? { tokens: data[0], lastLaunch: data[1], postingFee: data[2], fixedSupply: data[3] }
       : undefined,
   };
 }

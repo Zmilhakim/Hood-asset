@@ -58,7 +58,3 @@ interface INonfungiblePositionManager {
 
     function ownerOf(uint256 tokenId) external view returns (address);
 }
-
-interface IERC165 {
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
-}

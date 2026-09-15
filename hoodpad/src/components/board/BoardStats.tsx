@@ -3,7 +3,7 @@
 import { StatTile } from "@/components/ui/StatTile";
 import { useBoardStats } from "@/lib/board";
 import { BOARD_IS_OPEN } from "@/lib/contracts";
-import { formatCount, formatEth, timeAgo } from "@/lib/format";
+import { formatCount, formatEth, formatTokenAmount, timeAgo } from "@/lib/format";
 
 export function BoardStats() {
   const { stats, isLoading, isError } = useBoardStats();
@@ -20,7 +20,7 @@ export function BoardStats() {
     <div>
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile label="Notices posted" value={read(stats?.tokens, (v) => formatCount(v))} />
-        <StatTile label="Drops" value={read(stats?.drops, (v) => formatCount(v))} />
+        <StatTile label="Supply each" value={read(stats?.fixedSupply, (v) => formatTokenAmount(v))} />
         <StatTile label="Last launch" value={read(stats?.lastLaunch, (v) => timeAgo(v))} />
         <StatTile label="Posting fee" value={read(stats?.postingFee, (v) => formatEth(v))} />
       </div>

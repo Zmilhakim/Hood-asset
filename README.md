@@ -10,7 +10,7 @@ brand/       logo, avatar, banner and OG image, all generated from source
 *.png        the original Hood character art
 ```
 
-Hoodpad posts every token and every drop to one on-chain board. A launch is a
+Hoodpad posts every token to one on-chain board. A launch is a
 single transaction: the supply is minted, the whole of it opens a single-sided
 pool, and the position is locked where nobody — including whoever posted it —
 can take it back. Trading fees stay claimable by the poster; the liquidity does

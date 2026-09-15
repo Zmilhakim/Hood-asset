@@ -127,14 +127,31 @@ test("a fresh board reports empty figures rather than guesses", async () => {
   assert.equal((await call(factory, factoryArtifact.abi, "noticeCount")).decode(), 0n);
   assert.deepEqual((await call(factory, factoryArtifact.abi, "latest", [0n, 20n])).decode(), []);
 
-  const [tokens, drops, lastLaunch, fee, supply] = (
+  const [tokens, lastLaunch, fee, supply] = (
     await call(factory, factoryArtifact.abi, "boardStats")
   ).decode();
   assert.equal(tokens, 0n);
-  assert.equal(drops, 0n);
   assert.equal(lastLaunch, 0n);
   assert.equal(fee, POSTING_FEE);
   assert.equal(supply, FIXED_SUPPLY);
+});
+
+test("the factory exposes no NFT surface of its own", () => {
+  const names = factoryArtifact.abi
+    .filter((entry) => entry.type === "function" || entry.type === "event")
+    .map((entry) => entry.name);
+
+  for (const forbidden of ["postDrop", "dropCount", "drops"]) {
+    assert.ok(!names.includes(forbidden), `${forbidden} is back on the factory`);
+  }
+
+  // The only ERC721 left anywhere is the Uniswap position the locker holds,
+  // which is how v3 represents liquidity — not a collection this launches.
+  const erc721ish = JSON.stringify(factoryArtifact.abi).match(/721|ERC165|supportsInterface/i);
+  assert.equal(erc721ish, null, "an ERC721 reference reappeared in the factory ABI");
+
+  const lockerNames = lockerArtifact.abi.filter((e) => e.type === "function").map((e) => e.name);
+  assert.deepEqual(lockerNames.filter((n) => /721/i.test(n)), ["onERC721Received"]);
 });
 
 test("the factory refuses zero addresses for the venue it launches into", async () => {

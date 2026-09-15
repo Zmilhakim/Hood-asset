@@ -6,12 +6,12 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {HoodToken} from "./HoodToken.sol";
 import {PositionLocker} from "./PositionLocker.sol";
-import {IERC165, INonfungiblePositionManager, IUniswapV3Factory, IUniswapV3Pool} from "./interfaces/IUniswapV3.sol";
+import {INonfungiblePositionManager, IUniswapV3Factory, IUniswapV3Pool} from "./interfaces/IUniswapV3.sol";
 
 /// @title HoodpadFactory
-/// @notice The board. Every token and every drop launched through Hoodpad is
-/// recorded here as a notice, and every figure the site shows is read back out
-/// of this contract — nothing is estimated off-chain.
+/// @notice The board. Every token launched through Hoodpad is recorded here as
+/// a notice, and every figure the site shows is read back out of this contract
+/// — nothing is estimated off-chain.
 ///
 /// A token launch is one transaction:
 ///   1. mint the whole fixed supply,
@@ -24,25 +24,19 @@ import {IERC165, INonfungiblePositionManager, IUniswapV3Factory, IUniswapV3Pool}
 /// the initialization price, so the pool cannot pull ETH from the poster and
 /// the poster cannot keep a share of the supply.
 contract HoodpadFactory is ReentrancyGuard {
-    enum Kind {
-        Token,
-        Drop
-    }
-
     struct Notice {
         uint256 id;
-        Kind kind;
-        address asset; // the ERC20 for a token, the ERC721 for a drop
+        address token;
         address poster;
         string name;
         string symbol;
         string imageURI;
         string blurb;
         string link;
-        uint256 supply; // 0 for a drop
+        uint256 supply;
         uint256 postedAt;
-        uint256 positionId; // 0 for a drop
-        address pool; // address(0) for a drop
+        uint256 positionId;
+        address pool;
     }
 
     struct TokenParams {
@@ -58,20 +52,9 @@ contract HoodpadFactory is ReentrancyGuard {
         uint24 fee; // pool fee tier, e.g. 10000 for 1%
     }
 
-    struct DropParams {
-        address collection;
-        string name;
-        string symbol;
-        string imageURI;
-        string blurb;
-        string link;
-    }
-
     /// @notice Every token launched here has exactly this supply. It is not a
     /// parameter, so no launch can quietly print more than another.
     uint256 public constant FIXED_SUPPLY = 1_000_000_000e18;
-
-    bytes4 private constant ERC721_INTERFACE_ID = 0x80ac58cd;
 
     address public immutable weth;
     IUniswapV3Factory public immutable dexFactory;
@@ -84,7 +67,6 @@ contract HoodpadFactory is ReentrancyGuard {
     mapping(address poster => uint256[] noticeIds) private _noticesOf;
 
     uint256 public tokenCount;
-    uint256 public dropCount;
     uint256 public lastLaunchAt;
 
     error BadRange();
@@ -92,14 +74,13 @@ contract HoodpadFactory is ReentrancyGuard {
     error FeeTooLow();
     error FeeTransferFailed();
     error NoLiquidity();
-    error NotAnERC721();
     error NotSingleSided();
     error RefundFailed();
     error UnsupportedFee();
     error ZeroAddress();
 
     event NoticePosted(
-        uint256 indexed id, Kind indexed kind, address indexed asset, address poster, string name, string symbol
+        uint256 indexed id, address indexed token, address indexed poster, string name, string symbol
     );
     event PoolOpened(uint256 indexed id, address indexed pool, uint256 positionId, uint128 liquidity);
 
@@ -149,8 +130,7 @@ contract HoodpadFactory is ReentrancyGuard {
         (pool, positionId, liquidity) = _openLockedPool(token, params);
 
         Notice memory draft;
-        draft.kind = Kind.Token;
-        draft.asset = token;
+        draft.token = token;
         draft.name = params.name;
         draft.symbol = params.symbol;
         draft.imageURI = params.imageURI;
@@ -163,33 +143,6 @@ contract HoodpadFactory is ReentrancyGuard {
         id = _record(draft);
 
         emit PoolOpened(id, pool, positionId, liquidity);
-
-        _settleFee();
-    }
-
-    /// @notice Post an already-deployed NFT collection to the board. Drops carry
-    /// no pool — the notice is a record of the launch, and the figures behind it
-    /// are read from the collection itself.
-    function postDrop(DropParams calldata params) external payable nonReentrant returns (uint256 id) {
-        if (params.collection == address(0)) revert ZeroAddress();
-        if (bytes(params.name).length == 0 || bytes(params.symbol).length == 0) revert EmptyMetadata();
-
-        try IERC165(params.collection).supportsInterface(ERC721_INTERFACE_ID) returns (bool supported) {
-            if (!supported) revert NotAnERC721();
-        } catch {
-            revert NotAnERC721();
-        }
-
-        Notice memory draft;
-        draft.kind = Kind.Drop;
-        draft.asset = params.collection;
-        draft.name = params.name;
-        draft.symbol = params.symbol;
-        draft.imageURI = params.imageURI;
-        draft.blurb = params.blurb;
-        draft.link = params.link;
-
-        id = _record(draft);
 
         _settleFee();
     }
@@ -261,13 +214,9 @@ contract HoodpadFactory is ReentrancyGuard {
         _noticesOf[msg.sender].push(id);
         lastLaunchAt = block.timestamp;
 
-        if (draft.kind == Kind.Token) {
-            tokenCount += 1;
-        } else {
-            dropCount += 1;
-        }
+        tokenCount += 1;
 
-        emit NoticePosted(id, draft.kind, draft.asset, msg.sender, draft.name, draft.symbol);
+        emit NoticePosted(id, draft.token, msg.sender, draft.name, draft.symbol);
     }
 
     function _settleFee() private {
@@ -330,8 +279,8 @@ contract HoodpadFactory is ReentrancyGuard {
     function boardStats()
         external
         view
-        returns (uint256 tokens, uint256 drops, uint256 lastLaunch, uint256 fee, uint256 supply)
+        returns (uint256 tokens, uint256 lastLaunch, uint256 fee, uint256 supply)
     {
-        return (tokenCount, dropCount, lastLaunchAt, postingFee, FIXED_SUPPLY);
+        return (tokenCount, lastLaunchAt, postingFee, FIXED_SUPPLY);
     }
 }

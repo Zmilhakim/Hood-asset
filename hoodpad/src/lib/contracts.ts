@@ -19,12 +19,9 @@ export const BOARD_IS_OPEN = FACTORY_ADDRESS !== undefined;
 export const LAUNCH_FEE_TIER = 10_000;
 export const LAUNCH_TICK_SPACING = 200;
 
-export type NoticeKind = 0 | 1;
-
 export type Notice = {
   id: bigint;
-  kind: NoticeKind;
-  asset: `0x${string}`;
+  token: `0x${string}`;
   poster: `0x${string}`;
   name: string;
   symbol: string;

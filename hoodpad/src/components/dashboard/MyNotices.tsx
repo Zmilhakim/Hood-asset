@@ -16,7 +16,7 @@ function CollectFees({ notice, locker }: { notice: Notice; locker?: `0x${string}
   const { writeContract, data: hash, isPending } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
 
-  if (notice.kind !== 0 || notice.positionId === 0n || !locker) return null;
+  if (notice.positionId === 0n || !locker) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-t-2 border-dashed border-ink/20 px-3 py-2.5 sm:px-4">

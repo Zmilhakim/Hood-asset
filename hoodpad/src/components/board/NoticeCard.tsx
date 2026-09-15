@@ -6,7 +6,7 @@ import { formatTokenAmount, shortAddress, timeAgo } from "@/lib/format";
 
 export function NoticeCard({ notice }: { notice: Notice }) {
   const posted = timeAgo(notice.postedAt);
-  const supply = notice.kind === 0 ? formatTokenAmount(notice.supply) : null;
+  const supply = formatTokenAmount(notice.supply);
 
   return (
     <article className="flex gap-4 border-2 border-ink bg-paper p-3 sm:p-4">
@@ -17,7 +17,7 @@ export function NoticeCard({ notice }: { notice: Notice }) {
           <h3 className="font-display truncate text-lg leading-tight">{notice.name}</h3>
           <span className="micro font-semibold text-flame-deep">${notice.symbol}</span>
           <span className="ml-auto">
-            <Badge tone={notice.kind === 0 ? "flame" : "idle"}>{notice.kind === 0 ? "Token" : "Drop"}</Badge>
+            <Badge tone="flame">Locked</Badge>
           </span>
         </div>
 
@@ -40,22 +40,20 @@ export function NoticeCard({ notice }: { notice: Notice }) {
               <dd className="text-ink-soft">{posted}</dd>
             </div>
           )}
-          {notice.kind === 0 && (
-            <div className="flex gap-1.5">
-              <dt>Pool</dt>
-              <dd className="text-ink-soft">locked forever</dd>
-            </div>
-          )}
+          <div className="flex gap-1.5">
+            <dt>Pool</dt>
+            <dd className="text-ink-soft">locked forever</dd>
+          </div>
         </dl>
 
         <div className="micro mt-3 flex flex-wrap gap-x-4 gap-y-1">
           <a
-            href={explorerAddress(notice.asset)}
+            href={explorerAddress(notice.token)}
             target="_blank"
             rel="noreferrer noopener"
             className="font-semibold text-ink underline decoration-flame decoration-2 underline-offset-2 hover:text-flame-deep"
           >
-            {notice.kind === 0 ? "Token contract" : "Collection"} ↗
+            Token contract ↗
           </a>
           {notice.link && (
             <a

@@ -58,11 +58,6 @@ export const hoodpadFactoryAbi = [
   },
   {
     "inputs": [],
-    "name": "NotAnERC721",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "NotSingleSided",
     "type": "error"
   },
@@ -97,18 +92,12 @@ export const hoodpadFactoryAbi = [
       },
       {
         "indexed": true,
-        "internalType": "enum HoodpadFactory.Kind",
-        "name": "kind",
-        "type": "uint8"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
-        "name": "asset",
+        "name": "token",
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "poster",
         "type": "address"
@@ -184,11 +173,6 @@ export const hoodpadFactoryAbi = [
       },
       {
         "internalType": "uint256",
-        "name": "drops",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
         "name": "lastLaunch",
         "type": "uint256"
       },
@@ -214,19 +198,6 @@ export const hoodpadFactoryAbi = [
         "internalType": "contract IUniswapV3Factory",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "dropCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -268,13 +239,8 @@ export const hoodpadFactoryAbi = [
             "type": "uint256"
           },
           {
-            "internalType": "enum HoodpadFactory.Kind",
-            "name": "kind",
-            "type": "uint8"
-          },
-          {
             "internalType": "address",
-            "name": "asset",
+            "name": "token",
             "type": "address"
           },
           {
@@ -367,13 +333,8 @@ export const hoodpadFactoryAbi = [
             "type": "uint256"
           },
           {
-            "internalType": "enum HoodpadFactory.Kind",
-            "name": "kind",
-            "type": "uint8"
-          },
-          {
             "internalType": "address",
-            "name": "asset",
+            "name": "token",
             "type": "address"
           },
           {
@@ -478,57 +439,6 @@ export const hoodpadFactoryAbi = [
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "collection",
-            "type": "address"
-          },
-          {
-            "internalType": "string",
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "symbol",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "imageURI",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "blurb",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "link",
-            "type": "string"
-          }
-        ],
-        "internalType": "struct HoodpadFactory.DropParams",
-        "name": "params",
-        "type": "tuple"
-      }
-    ],
-    "name": "postDrop",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
     "type": "function"
   },
   {

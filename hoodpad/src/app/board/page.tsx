@@ -11,7 +11,7 @@ import { ROBINHOOD_CHAIN_ID } from "@/lib/chain";
 
 export const metadata: Metadata = {
   title: "Board",
-  description: "Every token and every drop launched through Hoodpad, read straight from the chain.",
+  description: "Every token launched through Hoodpad, read straight from the chain.",
 };
 
 export default function BoardPage() {
@@ -25,7 +25,7 @@ export default function BoardPage() {
           <div>
             <h1 className="font-display text-3xl leading-[1.15] sm:text-4xl">Every launch gets nailed to the board</h1>
             <p className="mt-3 max-w-prose text-sm leading-6 text-ink-soft">
-              Each token and each drop that launches through Hoodpad is posted here as a notice. One transaction mints
+              Every token that launches through Hoodpad is posted here as a notice. One transaction mints
               the supply, opens a single-sided pool and locks the position for good. Every figure on this page is read
               back out of the board contract — none of it is estimated.
             </p>

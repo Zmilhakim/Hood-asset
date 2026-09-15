@@ -1,36 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+
 import { NoticeCard } from "./NoticeCard";
+import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Panel } from "@/components/ui/Panel";
-import { Tabs } from "@/components/ui/Tabs";
 import { buttonClasses } from "@/components/ui/Button";
 import { useLatestNotices } from "@/lib/board";
 import { BOARD_IS_OPEN } from "@/lib/contracts";
 
-type Section = "tokens" | "drops";
-
 export function BoardFeed() {
-  const [section, setSection] = useState<Section>("tokens");
   const { notices, isLoading, isError } = useLatestNotices(40);
-
-  const wanted = section === "tokens" ? 0 : 1;
-  const rows = notices?.filter((notice) => Number(notice.kind) === wanted) ?? [];
+  const rows = notices ?? [];
 
   return (
     <div>
-      <Tabs
-        tabs={[
-          { key: "tokens", label: "Tokens", count: notices ? notices.filter((n) => Number(n.kind) === 0).length : null },
-          { key: "drops", label: "Drops", count: notices ? notices.filter((n) => Number(n.kind) === 1).length : null },
-        ]}
-        active={section}
-        onChange={(key) => setSection(key as Section)}
-      />
-
-      <Panel bodyClassName="p-3 sm:p-4">
+      <Panel
+        label="Notices, newest first"
+        aside={rows.length > 0 ? <Badge tone="live">{rows.length} posted</Badge> : undefined}
+        bodyClassName="p-3 sm:p-4"
+      >
         {!BOARD_IS_OPEN ? (
           <EmptyState title="The board opens soon">
             Hoodpad is not live on Robinhood Chain yet. The first notice lands here the moment a token launches — and
@@ -48,8 +38,8 @@ export function BoardFeed() {
             connection is back.
           </EmptyState>
         ) : rows.length === 0 ? (
-          <EmptyState title={section === "tokens" ? "No tokens posted yet" : "No drops posted yet"}>
-            Nothing has been nailed up in this section.{" "}
+          <EmptyState title="Nothing posted yet">
+            No token has launched through Hoodpad so far.{" "}
             <Link href="/launch" className="underline decoration-flame decoration-2 underline-offset-2">
               Post the first one
             </Link>
