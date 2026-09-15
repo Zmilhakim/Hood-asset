@@ -41,11 +41,16 @@ renders, with no font to ship.
 The same grid is duplicated in `hoodpad/src/components/ui/Mark.tsx` so the
 header can tint it with CSS variables. If you change the cowl, change both.
 
-## Placeholders to replace
+## The domain on the assets
 
-`BRAND` at the top of `render.mjs` holds the domain and handle printed on the
-banner. They are currently `HOODPAD.FUN` and `@HOODPAD` — guesses, not
-registered. Set them to whatever you actually own and re-run.
+`BRAND` at the top of `render.mjs` holds the site printed on the OG card. It is
+set to the live Vercel URL. Point it at a custom domain the day that domain
+actually resolves, and re-run — an unregistered domain printed on a banner is a
+claim anybody can check in five seconds.
+
+The X banner deliberately prints no domain and no handle. The profile shows
+both already, and repeating them on the image only creates something that can
+go stale. It carries the ticker, the chain and the guarantee instead.
 
 ## Why the render script fetches the fonts itself
 

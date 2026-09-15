@@ -23,8 +23,12 @@ const publicDir = join(here, "..", "hoodpad", "public", "brand");
 // --- the things you would change -------------------------------------------
 export const BRAND = {
   ticker: "$HPAD",
-  site: "HOODPAD.FUN",
-  handle: "@HOODPAD",
+  // The live site. Change this the day a custom domain actually resolves —
+  // a banner is a claim, and an unregistered domain printed on one is a false
+  // claim that anybody can check in five seconds.
+  site: "HOODPAD-PSI.VERCEL.APP",
+  chain: "ROBINHOOD CHAIN 4663",
+  promise: "SUPPLY FIXED · POOL LOCKED",
   tagline: "PLAIN TOOLS FOR LAUNCHING ON ROBINHOOD CHAIN",
   line: "Post a notice, open a pool, keep the fees. Every figure read straight from the chain.",
 };
@@ -144,9 +148,9 @@ const banner = `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>
       ${noticeCard({ width: 470 })}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 60px;border-top:3px solid ${PALETTE.ink};background:${PALETTE.paperDeep}">
-      <span class="micro" style="color:${PALETTE.ink};font-weight:600">${BRAND.site}</span>
       <span class="micro" style="color:${PALETTE.ink};font-weight:600">${BRAND.ticker}</span>
-      <span class="micro" style="color:${PALETTE.ink};font-weight:600">${BRAND.handle}</span>
+      <span class="micro" style="color:${PALETTE.ink};font-weight:600">${BRAND.chain}</span>
+      <span class="micro" style="color:${PALETTE.ink};font-weight:600">${BRAND.promise}</span>
     </div>
   </div>
 </body></html>`;
