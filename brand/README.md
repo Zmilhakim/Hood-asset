@@ -23,6 +23,12 @@ Outputs land in `out/`, and the files the site serves are copied into
 | `banner-1500x500.png`   | X / Twitter header                       |
 | `og-1200x630.png`       | Link previews                            |
 
+## The X account
+
+Display name, handle, bio and website copy live in
+[`X-PROFILE.md`](X-PROFILE.md), with the character counts already measured
+against X's limits.
+
 ## The ticker
 
 **`$HPAD`**.
