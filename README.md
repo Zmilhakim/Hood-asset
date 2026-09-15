@@ -18,7 +18,7 @@ not.
 
 | Route        | What it is                                                    |
 | ------------ | ------------------------------------------------------------- |
-| `/`          | The pitch: what it does, who it was built for, straight answers |
+| `/`          | The pitch: what it does, how it works, straight answers        |
 | `/board`     | The live feed of notices, read from the chain                  |
 | `/launch`    | Post a notice                                                  |
 | `/dashboard` | Your notices and the fees your locked positions earned         |

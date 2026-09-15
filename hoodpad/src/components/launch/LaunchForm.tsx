@@ -183,14 +183,14 @@ export function LaunchForm() {
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
             <Field
               label="Name"
-              placeholder="Panda Hood"
+              placeholder="Your token name"
               value={draft.name}
               maxLength={48}
               onChange={(e) => set("name", e.target.value)}
             />
             <Field
               label="Ticker"
-              placeholder="PANDA"
+              placeholder="TICKER"
               value={draft.symbol}
               maxLength={11}
               onChange={(e) => set("symbol", e.target.value.toUpperCase())}

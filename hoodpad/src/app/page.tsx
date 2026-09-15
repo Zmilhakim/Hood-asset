@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { Faq } from "@/components/landing/Faq";
-import { Family } from "@/components/landing/Family";
 import { Hero } from "@/components/landing/Hero";
 import { Steps } from "@/components/landing/Steps";
 import { TickerNotice } from "@/components/landing/TickerNotice";
@@ -13,7 +12,6 @@ export default function LandingPage() {
       <Hero />
       <Steps />
       <TickerNotice />
-      <Family />
       <Faq />
 
       <section className="border-t-2 border-dashed border-paper/20 pt-10 text-center">

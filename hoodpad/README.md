@@ -4,7 +4,7 @@ The board. Next.js App Router, Tailwind, wagmi/viem. Four routes:
 
 | Route        | What it is                                                            |
 | ------------ | --------------------------------------------------------------------- |
-| `/`          | The landing page: the pitch, the Hood family, straight answers         |
+| `/`          | The landing page: the pitch, the mechanism, straight answers           |
 | `/board`     | The feed of notices, with the board's figures read from one call       |
 | `/launch`    | Post a notice: mint, open the pool, lock it — one transaction          |
 | `/dashboard` | What you posted, and the fees your locked positions have earned        |
