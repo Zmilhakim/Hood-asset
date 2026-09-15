@@ -23,10 +23,10 @@ const publicDir = join(here, "..", "hoodpad", "public", "brand");
 // --- the things you would change -------------------------------------------
 export const BRAND = {
   ticker: "$HPAD",
-  // The live site. Change this the day a custom domain actually resolves —
-  // a banner is a claim, and an unregistered domain printed on one is a false
-  // claim that anybody can check in five seconds.
-  site: "HOODPAD-PSI.VERCEL.APP",
+  // The live site, baked into the OG card as pixels — the one place that does
+  // not follow VERCEL_PROJECT_PRODUCTION_URL on its own. Only ever put a
+  // domain here that is actually registered.
+  site: "HOODPAD.SITE",
   chain: "ROBINHOOD CHAIN 4663",
   promise: "SUPPLY FIXED · POOL LOCKED",
   tagline: "PLAIN TOOLS FOR LAUNCHING ON ROBINHOOD CHAIN",

@@ -39,11 +39,11 @@ Alternatives:
 ## Website
 
 ```
-https://hoodpad-psi.vercel.app
+https://hoodpad.site
 ```
 
-Replace with the custom domain once one resolves — and update `BRAND.site` in
-`render.mjs` at the same time, so the OG card agrees with the profile.
+The Vercel URL `hoodpad-psi.vercel.app` still works and always will, but the
+custom domain is the one to put on the profile.
 
 ## Images
 
@@ -63,7 +63,7 @@ wrong. The footer carries the ticker, the chain and the guarantee instead —
 none of which can expire.
 
 An earlier version printed `HOODPAD.FUN` and `@HOODPAD`. Neither was
-registered. Do not put a domain on a banner before it resolves.
+registered at the time. Do not put a domain on an image before it is yours.
 
 ## Ticker
 

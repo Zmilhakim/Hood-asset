@@ -49,10 +49,11 @@ header can tint it with CSS variables. If you change the cowl, change both.
 
 ## The domain on the assets
 
-`BRAND` at the top of `render.mjs` holds the site printed on the OG card. It is
-set to the live Vercel URL. Point it at a custom domain the day that domain
-actually resolves, and re-run — an unregistered domain printed on a banner is a
-claim anybody can check in five seconds.
+`BRAND` at the top of `render.mjs` holds the site printed on the OG card, now
+`HOODPAD.SITE`. That card is the only asset where the domain is baked in as
+pixels — the page's own metadata follows Vercel's
+`VERCEL_PROJECT_PRODUCTION_URL`, which becomes the custom domain by itself once
+it is attached. Re-run this script whenever the domain changes.
 
 The X banner deliberately prints no domain and no handle. The profile shows
 both already, and repeating them on the image only creates something that can
