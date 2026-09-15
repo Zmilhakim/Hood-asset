@@ -1,0 +1,54 @@
+# Hoodpad — web app
+
+The board. Next.js App Router, Tailwind, wagmi/viem. Four routes:
+
+| Route        | What it is                                                            |
+| ------------ | --------------------------------------------------------------------- |
+| `/`          | The feed of notices, with the board's figures read from one call       |
+| `/launch`    | Post a notice: mint, open the pool, lock it — one transaction          |
+| `/dashboard` | What you posted, and the fees your locked positions have earned        |
+| `/learn`     | What the transaction does, what is fixed, and what is not guaranteed   |
+
+## Running it
+
+```bash
+npm install
+cp .env.example .env.local   # optional; see below
+npm run dev
+```
+
+Without `NEXT_PUBLIC_FACTORY_ADDRESS` the site still runs: it reports that the
+board has not opened on Robinhood Chain and shows `n/a` where a figure would
+go. That is deliberate — it never renders a zero that could be mistaken for a
+measurement.
+
+```bash
+npm run build      # production build
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
+npm test           # tick math, via node's type stripping
+```
+
+## Wallets
+
+Injected connectors only — MetaMask, Rabby, anything the browser exposes. No
+WalletConnect project id, no third-party modal, nothing to sign up for.
+
+## Where the numbers come from
+
+`src/lib/board.ts` holds every read. There is no API route and no server-side
+cache: the browser talks to the RPC endpoint and renders what comes back.
+
+`src/lib/pool.ts` is the one piece of real arithmetic. The launch contract
+rejects any range that straddles the spot price, so the ticks handed to it have
+to line up exactly with Uniswap's grid — it uses Uniswap's own TickMath
+constants rather than an approximation, and derives the pool's opening price
+*from* the boundary tick so the two cannot disagree. `src/lib/pool.test.ts`
+checks those constants against `sqrt(1.0001^tick) · 2^96` across the full tick
+range.
+
+## Notice art
+
+Image URLs are supplied by whoever posts the notice, so they point at hosts
+nobody here controls. They render through a plain `<img>`, not the Next image
+optimiser, so this server never fetches them. See `NoticeImage.tsx`.

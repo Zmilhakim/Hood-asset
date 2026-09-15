@@ -1,0 +1,30 @@
+{
+  "name": "hoodpad-contracts",
+  "version": "1.0.0",
+  "description": "Hoodpad launchpad contracts for Robinhood Chain",
+  "main": "index.js",
+  "scripts": {
+    "compile": "node compile.mjs",
+    "pretest": "node compile.mjs",
+    "test": "node --test test/*.test.mjs",
+    "deploy": "node deploy.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-periphery": "^1.4.4",
+    "solc": "^0.8.26"
+  },
+  "private": true,
+  "type": "commonjs",
+  "devDependencies": {
+    "@ethereumjs/common": "^10.1.3",
+    "@ethereumjs/evm": "^10.1.3",
+    "@ethereumjs/util": "^10.1.3",
+    "@ethereumjs/vm": "^10.1.3",
+    "viem": "^2.56.5"
+  }
+}

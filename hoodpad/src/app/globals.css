@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  /* The ground: the dark forest the notices are nailed up in. */
+  --color-ground: #14301e;
+  --color-ground-deep: #0d2014;
+  --color-ground-soft: #1d4028;
+
+  /* Paper: every panel is a sheet pinned to the board. */
+  --color-paper: #f1e7ce;
+  --color-paper-dim: #e2d5b4;
+  --color-paper-deep: #d2c197;
+
+  /* Ink: the writing on it. */
+  --color-ink: #21170e;
+  --color-ink-soft: #6d5c43;
+  --color-ink-faint: #9b8a6e;
+
+  /* Flame: the one colour allowed to shout. */
+  --color-flame: #e3762a;
+  --color-flame-deep: #b85b18;
+
+  --color-wood: #6b4321;
+  --color-wood-deep: #3f2712;
+  --color-moss: #5c7a55;
+
+  --font-display: var(--font-rye), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    /* Faint diagonal weave, same trick as the printed posters. */
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.022) 0px,
+      rgb(255 255 255 / 0.022) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+    color: var(--color-paper);
+    font-family: var(--font-mono);
+    margin: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-flame);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-flame);
+    outline-offset: 2px;
+  }
+}
+
+@utility paper-grain {
+  /* Cheap paper tooth — two offset dot grids, no image request. */
+  background-image:
+    radial-gradient(rgb(33 23 14 / 0.045) 0.5px, transparent 0.5px),
+    radial-gradient(rgb(33 23 14 / 0.03) 0.5px, transparent 0.5px);
+  background-size: 11px 11px, 17px 17px;
+  background-position: 0 0, 5px 8px;
+}
+
+@utility pin-shadow {
+  box-shadow: 4px 4px 0 0 var(--color-ground-deep);
+}
+
+@utility pin-shadow-sm {
+  box-shadow: 2px 2px 0 0 var(--color-ground-deep);
+}
+
+@utility nail-rail {
+  /* The dotted batten across the top of a notice board. */
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-ink) 0px,
+    var(--color-ink) 3px,
+    transparent 3px,
+    transparent 9px
+  );
+}
+
+@utility micro {
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility drifting {
+  animation: drift 38s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drifting {
+    animation: none;
+  }
+}
