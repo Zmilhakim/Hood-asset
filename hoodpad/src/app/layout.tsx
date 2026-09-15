@@ -6,6 +6,7 @@ import { Providers } from "@/providers";
 import { SiteHeader } from "@/components/chrome/SiteHeader";
 import { SiteFooter } from "@/components/chrome/SiteFooter";
 import { ArrivalsTicker } from "@/components/board/ArrivalsTicker";
+import { SITE_URL } from "@/lib/site";
 
 const rye = Rye({ weight: "400", subsets: ["latin"], variable: "--font-rye", display: "swap" });
 
@@ -16,20 +17,11 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-/**
- * Absolute URLs for social cards. Vercel supplies its own hostname at build
- * time; set NEXT_PUBLIC_SITE_URL once there is a real domain.
- */
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
-  "http://localhost:3000";
-
 const description =
   "Plain tools for launching on Robinhood Chain. One transaction mints the supply, opens a single-sided pool and locks the position for good.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: { default: "Hoodpad — plain tools for Robinhood Chain", template: "%s · Hoodpad" },
   description,
   openGraph: {
