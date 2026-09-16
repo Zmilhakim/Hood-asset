@@ -13,13 +13,14 @@ Hoodpad | $HPAD
 
 Alternatives: `Hoodpad` (7) · `Hoodpad — launchpad on Robinhood Chain` (38)
 
-## Handle — max 15, letters/digits/underscore only
+## Handle
 
-Try in this order. **Availability was never checked** — there is no X access
-from the build environment, so verify each one at signup.
+**`@gethoodpad`** — registered 2026-09-16.
 
-`@hoodpad` (7) → `@hoodpad_` (8) → `@hoodpadfun` (10) → `@hoodpad_hq` (10) →
-`@gethoodpad` (10) → `@hoodpadxyz` (10)
+`@hoodpad` was already taken, which is worth knowing rather than forgetting:
+the shorter handle belongs to someone else and could be pointed at anything.
+Anyone reading a link should check it says `gethoodpad`, and the site footer is
+the reference for which account is real.
 
 ## Bio — max 160
 
