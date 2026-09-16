@@ -71,6 +71,29 @@ Before spending a single wei it checks, on chain, that:
   differently, launches would revert *after* the token had already been
   deployed.
 
+### A deployer key
+
+```bash
+npm run wallet
+```
+
+Generates a fresh key on your machine, prints it once, saves it nowhere. It
+refuses to run if its output is being piped or redirected, because that is how
+a key ends up in a file or a log.
+
+A private key is only secret while it has existed in exactly one place. One
+that has been pasted into a chat, an issue, a DM or a CI log is not secret any
+more, regardless of who sent it or how fast it was deleted. Nobody — no
+support agent, no teammate, no AI — needs to see it.
+
+A browser wallet works just as well: make a fresh account in MetaMask or Rabby,
+add Robinhood Chain (chain id 4663), and export that account's key when you
+deploy.
+
+Either way, fund the address with ETH on Robinhood Chain first, and use a
+different address for `TREASURY` — that one keeps receiving fees long after
+the deploy, so it belongs on a hardware wallet if you have one.
+
 ### Running it
 
 ```bash
