@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { BOARD_IS_OPEN } from "@/lib/contracts";
-import { HPAD_POOL, HPAD_TOKEN, TICKER } from "@/lib/brand";
+import { HPAD_POOL, HPAD_POSTER, HPAD_TOKEN, TICKER } from "@/lib/brand";
 import { explorerAddress } from "@/lib/chain";
 
 export function TickerNotice() {
@@ -34,7 +34,16 @@ export function TickerNotice() {
               <dt className="text-ink-soft/60">pool</dt>
               <dd className="break-all">{HPAD_POOL}</dd>
             </div>
+            <div className="flex flex-wrap gap-x-2">
+              <dt className="text-ink-soft/60">posted by</dt>
+              <dd className="break-all">{HPAD_POSTER}</dd>
+            </div>
           </dl>
+          <p className="mt-3 max-w-prose text-xs leading-5 text-ink-soft/70">
+            That last address is the one that posted this notice and deployed the board. It holds no {TICKER}. That is
+            a balance anyone can look up, which is the only useful form the sentence &ldquo;the team holds
+            nothing&rdquo; can take.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <Link href="/board" className={buttonClasses("quiet")}>
               Read the notice

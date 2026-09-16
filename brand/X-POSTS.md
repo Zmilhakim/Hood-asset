@@ -27,14 +27,16 @@ Post this second, quoting or replying to the pinned post.
 ```
 $HPAD went through Hoodpad like everything else on the board.
 
-1,000,000,000 supply
-All of it in the pool
+1,000,000,000 supply, all of it in the pool
 LP locked, permanently
-Team holds nothing
 
+token
 0xA3B16698b0dff316dC3214Ab5C2D31DeBcB03096
 
-It is notice #1. Go read it.
+posted by
+0xA5E1d280EF25B5CD0768deBBaEa2Ee9e0ae56E81
+
+That second one holds none of it.
 ```
 
 ---
@@ -120,6 +122,10 @@ hoodpad.site
 Board, launch form, and every figure read straight from the chain rather than a database.
 
 Robinhood Chain, id 4663.
+
+Deployer: 0xA5E1d280EF25B5CD0768deBBaEa2Ee9e0ae56E81
+
+Check what it holds. That is the claim.
 ```
 
 ---
@@ -129,14 +135,14 @@ Robinhood Chain, id 4663.
 | Post | Characters |
 | --- | --- |
 | Pinned | 235 |
-| $HPAD | 221 |
+| $HPAD | 268 |
 | Thread 1/ | 258 |
 | Thread 2/ | 247 |
 | Thread 3/ | 228 |
 | Thread 4/ | 244 |
 | Thread 5/ | 206 |
 | Thread 6/ | 252 |
-| Thread 7/ | 130 |
+| Thread 7/ | 225 |
 
 All within X's 280. The addresses are the reason several sit in the 240s —
 shortening them would buy room that nothing needs.
