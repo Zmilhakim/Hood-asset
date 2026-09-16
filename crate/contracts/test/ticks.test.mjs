@@ -13,6 +13,7 @@ import {
   getSqrtPriceAtTick,
   launchRange,
   parseDecimal,
+  pricePerToken,
   sqrtBigInt,
   sqrtPriceX96FromRatio,
   tickAtOrBelow,
@@ -96,6 +97,23 @@ test("a dearer token is a lower tick, because the pool counts the other way", ()
   assert.ok(dear.tickUpper < cheap.tickUpper, "a ten-times dearer floor should sit ten times lower in tick terms");
   // ln(10)/ln(1.0001) is about 23026 ticks, aligned down to the 200 grid.
   assert.equal(cheap.tickUpper - dear.tickUpper, 23_000);
+});
+
+test("a market cap divides across the supply without becoming a float", () => {
+  const supply = 1_000_000_000n;
+
+  // 1 ETH across a billion tokens is 1e-9 each, which a decimal can hold…
+  assert.deepEqual(pricePerToken("1", supply), { num: 1n, den: 1_000_000_000n });
+  // …and 300 across a billion is 3e-7, which is where a float starts lying.
+  assert.deepEqual(pricePerToken("300", supply), { num: 300n, den: 1_000_000_000n });
+  // A cap with its own decimals keeps both denominators.
+  assert.deepEqual(pricePerToken("2.5", supply), { num: 25n, den: 10_000_000_000n });
+
+  // And it lands where the equivalent per-token price does.
+  assert.deepEqual(
+    launchRange({ floorEthPerToken: pricePerToken("1", supply), ceilEthPerToken: pricePerToken("100", supply), tickSpacing: SPACING }),
+    launchRange({ floorEthPerToken: "0.000000001", ceilEthPerToken: "0.0000001", tickSpacing: SPACING }),
+  );
 });
 
 test("an exact ratio describes the same range as the decimal it came from", () => {

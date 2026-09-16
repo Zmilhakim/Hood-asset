@@ -101,6 +101,23 @@ export const alignDown = (tick, spacing) => Math.floor(tick / spacing) * spacing
 export const alignUp = (tick, spacing) => Math.ceil(tick / spacing) * spacing;
 
 /**
+ * A market cap in ETH spread across a whole supply, as an exact fraction.
+ *
+ * Prices are quoted as what the entire supply is worth, because that is how
+ * anyone actually thinks about a launch — but the pool wants a price per token,
+ * and one divided by the other rarely has an exact decimal form. So it is never
+ * turned into one: the division is carried as a fraction the whole way to the
+ * tick.
+ *
+ * @param marketCapEth decimal string, e.g. "1" or "300".
+ * @param wholeSupply tokens, not wei — 1_000_000_000n, not 1e27.
+ */
+export function pricePerToken(marketCapEth, wholeSupply) {
+  const { num, den } = parseDecimal(marketCapEth);
+  return { num, den: den * wholeSupply };
+}
+
+/**
  * The launch range for a crate priced in ETH.
  *
  * In v4 the other side of the pool is native ETH, which is address zero and so

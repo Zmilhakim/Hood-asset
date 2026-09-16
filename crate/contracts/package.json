@@ -8,10 +8,11 @@
     "compile": "node compile.mjs",
     "pretest": "node compile.mjs",
     "test": "node --test test/*.test.mjs",
-    "deploy": "node deploy.mjs",
-    "pack": "node pack.mjs",
     "wallets": "node new-wallets.mjs",
-    "whoami": "node whoami.mjs"
+    "whoami": "node whoami.mjs",
+    "preflight": "node preflight.mjs",
+    "deploy": "node deploy.mjs",
+    "pack": "node pack.mjs"
   },
   "license": "MIT",
   "dependencies": {

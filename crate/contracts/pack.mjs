@@ -3,13 +3,11 @@
 // can reach it again. There is no undo, so it prints the entire plan and refuses
 // to broadcast until CONFIRM=pack says to.
 //
+// The packer address and the prices come from crate.config.json, which
+// `npm run deploy` filled in. Each of them can still be overridden for one run.
+//
 //   DEPLOYER_KEY=0x…   must be the account that deployed the packer
-//   PACKER=0x…         the CratePacker address deploy.mjs printed
-//   FLOOR_ETH=…        what the whole supply is worth where selling starts
-//   CEIL_ETH=…         what it is worth at the far end of the range
 //   RPC_URL=https://…  defaults to Robinhood's own public endpoint
-//   FEE=10000          the pool's LP fee, in hundredths of a bip
-//   TICK_SPACING=200   the grid the range has to line up with
 //   CONFIRM=pack       actually send it
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -19,7 +17,7 @@ import { createWalletClient, formatEther, getContractAddress, http, parseEventLo
 
 import { checkPoolManager, connect, fail, requireAddress, requireDeployerKey, requireEnv } from "./lib/env.mjs";
 import { cratePoolKey, poolId, readSlot0 } from "./lib/pool.mjs";
-import { launchRange, parseDecimal } from "./lib/ticks.mjs";
+import { launchRange, pricePerToken } from "./lib/ticks.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const abi = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8")).abi;
@@ -80,28 +78,19 @@ if (crate.owner.toLowerCase() !== account.address.toLowerCase()) {
 
 await checkPoolManager(publicClient, crate.poolManager);
 
-// The prices are given as what the whole supply is worth, because that is how
-// anyone actually thinks about a launch. The pool wants a price per token, and
-// one divided by the other rarely has an exact decimal form — so it is carried
-// as a fraction the whole way to the tick.
+// The supply is read off the contract rather than assumed, so the prices below
+// mean what they say even if SUPPLY ever changes.
 const wholeSupply = crate.supply / 10n ** 18n;
-const pricePerToken = (marketCapEth) => {
-  const { num, den } = parseDecimal(marketCapEth);
-  return { num, den: den * wholeSupply };
-};
 
 let range;
 try {
   range = launchRange({
-    floorEthPerToken: pricePerToken(process.env.FLOOR_ETH),
-    ceilEthPerToken: pricePerToken(process.env.CEIL_ETH),
+    floorEthPerToken: pricePerToken(floorEth, wholeSupply),
+    ceilEthPerToken: pricePerToken(ceilEth, wholeSupply),
     tickSpacing,
   });
 } catch (error) {
-  fail(
-    `cannot build a range from FLOOR_ETH=${process.env.FLOOR_ETH} CEIL_ETH=${process.env.CEIL_ETH}`,
-    `  ${error.message}`,
-  );
+  fail(`cannot build a range from floorEth=${floorEth} ceilEth=${ceilEth}`, `  ${error.message}`);
 }
 
 // The packer deploys the token itself, so its address is whatever its next
@@ -156,7 +145,7 @@ console.log(`pair       native ETH / ${crate.symbol}, no hook, no WETH`);
 console.log(`pool       ${id}`);
 console.log(`fee        ${fee / 10_000}% (tick spacing ${tickSpacing})`);
 console.log(`range      ticks ${range.tickLower} … ${range.tickUpper}, spot at ${spotTick}`);
-console.log(`prices     ${process.env.FLOOR_ETH} ETH to ${process.env.CEIL_ETH} ETH for the whole supply`);
+console.log(`prices     ${floorEth} ETH to ${ceilEth} ETH for the whole supply`);
 console.log(`seal       ${crate.seal}`);
 console.log(`payer      ${account.address} (${formatEther(await publicClient.getBalance({ address: account.address }))} ETH)`);
 
@@ -177,4 +166,7 @@ const [packed] = parseEventLogs({ abi, eventName: "Packed", logs: receipt.logs }
 console.log(`\ntoken      ${packed.args.token}`);
 console.log(`pool       ${packed.args.poolId}`);
 console.log(`liquidity  ${packed.args.liquidity} — held by ${crate.seal}, permanently`);
+
+recordDeployed(config, { token: packed.args.token });
+
 console.log(`\nThe crate is packed. It cannot be packed again.`);

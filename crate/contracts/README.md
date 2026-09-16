@@ -16,6 +16,7 @@ npm run compile   # writes out/, PoolManager included
 npm test          # compiles, then packs a crate and trades against it
 npm run wallets   # makes the two keys — on your machine, not a server
 npm run whoami    # which address does the key I stored control?
+npm run preflight # everything that can be checked before any gas is spent
 npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 ```
@@ -110,6 +111,10 @@ here and skip the generated key.
 
 No supply is set aside for it, and no contract pays it anything but fees.
 
+`deploy.mjs` also refuses to run if the key loaded is not the address
+`crate.config.json` names as the deployer — the config says who should be
+packing, the environment says who is about to, and they have to agree.
+
 Before either key signs anything, check you stored the right thing:
 
 ```bash
@@ -118,15 +123,58 @@ PACKER=0x… DEPLOYER_KEY=0x… npm run whoami       # …whether that crate ans
                                                  #    and where its fees are committed
 ```
 
+## The launch, written down
+
+Everything public about the launch lives in `crate.config.json`, and every script
+reads it from there:
+
+```json
+{
+  "chainId": 4663,
+  "poolManager": "",       // the Uniswap v4 PoolManager on Robinhood Chain
+  "treasury": "",          // where the fees go, forever
+  "deployer": "",          // the address that deploys and packs — its address, not its key
+  "launch": {
+    "fee": 10000,          // 1%
+    "tickSpacing": 200,
+    "floorEth": "",        // the whole supply is worth this much where selling starts
+    "ceilEth": ""          // …and this much at the far end of the range
+  },
+  "deployed": { }          // deploy.mjs and pack.mjs fill this in
+}
+```
+
+Addresses are public, so they belong in a file that gets reviewed in a diff
+rather than retyped at a prompt — `treasury` in particular, since it is
+immutable from `npm run deploy` onwards. **Keys never go in it.** They reach the
+scripts through `DEPLOYER_KEY` in your shell, and `loadConfig` refuses to run at
+all if anything in the file is 66 characters of hex.
+
+Any single value can still be overridden for one run (`TREASURY=0x… npm run
+preflight`), which is for trying something, not for launching.
+
+### Preflight
+
+`npm run preflight` sends nothing and needs no key. It checks the config parses
+and the addresses are real — including the EIP-55 checksum, which is what catches
+one transposed character — then that the RPC is the chain the config names, that
+the pool manager answers like one, that the deployer has gas, and that the prices
+describe a range the packer will accept. After deploying it also reads the seal
+back and confirms the fee address on chain is the one in the file.
+
+One check worth knowing about: **it warns if the treasury is a contract.** The
+pool pays native ETH with a plain call and reverts if the recipient refuses it,
+so a contract with no payable `receive` would make `collectFees` — and
+`compound` — revert forever. An ordinary account or a hardware wallet is always
+fine; a contract needs checking first.
+
 ## Pricing the launch
 
-`pack.mjs` turns two numbers into the ones the contract wants:
+Fill in `floorEth` and `ceilEth`, then:
 
 ```bash
-export PACKER=0x…          # what deploy.mjs printed
-export FLOOR_ETH=1         # the whole supply is worth 1 ETH where selling starts
-export CEIL_ETH=300        # …and 300 ETH at the far end of the range
-npm run pack               # prints the plan and sends nothing
+npm run preflight          # nothing is spent, and nothing is committed yet
+npm run pack               # prints the plan and still sends nothing
 CONFIRM=pack npm run pack  # sends it
 ```
 

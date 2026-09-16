@@ -1,0 +1,18 @@
+{
+  "$comment": "Addresses are public. Private keys never go in this file, or any file in this repo.",
+  "chainId": 4663,
+  "poolManager": "",
+  "treasury": "",
+  "deployer": "",
+  "launch": {
+    "fee": 10000,
+    "tickSpacing": 200,
+    "floorEth": "",
+    "ceilEth": ""
+  },
+  "deployed": {
+    "packer": "",
+    "seal": "",
+    "token": ""
+  }
+}
