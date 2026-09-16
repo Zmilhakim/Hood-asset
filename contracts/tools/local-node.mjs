@@ -13,6 +13,7 @@ import { createVM, runTx } from "@ethereumjs/vm";
 import { createCustomCommon, Hardfork, Mainnet } from "@ethereumjs/common";
 import { Account, Address, bytesToHex, hexToBytes } from "@ethereumjs/util";
 import { createTxFromRLP } from "@ethereumjs/tx";
+import { createBlock } from "@ethereumjs/block";
 import { keccak256 } from "viem";
 
 import { bootVenue, POSTER } from "../test/venue.mjs";
@@ -105,7 +106,22 @@ const handlers = {
     const tx = createTxFromRLP(hexToBytes(raw), { common: vm.common });
     await ensureFunded(tx.getSenderAddress().toString());
 
-    const result = await runTx(vm, { tx, skipBlockGasLimitValidation: true, skipBalance: false });
+    // Without a block, block.timestamp is zero, and every notice this board
+    // records comes back stamped "never" — which looks like a bug in whatever
+    // is reading it rather than in here.
+    const block = createBlock(
+      {
+        header: {
+          number: blockNumber,
+          timestamp: BigInt(Math.floor(Date.now() / 1000)),
+          gasLimit: 1_000_000_000n,
+          baseFeePerGas: GAS_PRICE,
+        },
+      },
+      { common: vm.common, skipConsensusFormatValidation: true },
+    );
+
+    const result = await runTx(vm, { tx, block, skipBlockGasLimitValidation: true, skipBalance: false });
     const hash = keccak256(raw);
 
     receipts.set(hash.toLowerCase(), {

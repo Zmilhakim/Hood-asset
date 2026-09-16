@@ -15,6 +15,7 @@ npm run compile   # writes out/ and regenerates the app's ABIs
 npm test          # compiles first, then runs the invariants and a full launch
 npm run deploy    # see deploy.mjs for the env vars it needs
 npm run launch    # post one token through a deployed board
+npm run status    # read the board: prices, supply left, unclaimed fees
 npm run node      # a local chain to rehearse against
 ```
 
@@ -42,6 +43,26 @@ Without `--go` nothing is sent: the script prints the address the token will
 land on, the range, and what the gas will cost, then stops. The salt is
 regenerated on every run, so the address changes between a rehearsal and the
 real thing.
+
+## Reading the board
+
+`status.mjs` reports what the board looks like right now. It needs no private
+key and sends nothing — every figure comes off the chain.
+
+```bash
+node status.mjs            # every notice, newest first
+node status.mjs 1          # one notice by id
+WATCH=0x… node status.mjs  # also report that wallet's gas and fees
+```
+
+For each notice it prints the token and pool addresses, the current price and
+market cap in ETH, how much of the supply is still unsold, how much WETH the
+pool has taken in, and the trading fees the poster has not collected yet.
+
+Unclaimed fees are read by simulating the collect the beneficiary would send,
+not by reading `tokensOwed` off the position. Those two disagree: `tokensOwed`
+only updates when the position is touched, so a pool that has been trading
+quietly reports zero until someone pokes it.
 
 ### Rehearsing without a chain
 

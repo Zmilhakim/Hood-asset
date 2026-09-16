@@ -41,6 +41,7 @@ export const UNISWAP_V3_POOL = uniswap("@uniswap/v3-core/artifacts/contracts/Uni
 export const POSITION_MANAGER = uniswap(
   "@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json",
 );
+export const SWAP_ROUTER = uniswap("@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json");
 
 export const FACTORY_ARTIFACT = local("HoodpadFactory");
 export const TOKEN_ARTIFACT = local("HoodToken");
