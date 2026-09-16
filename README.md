@@ -29,10 +29,11 @@ not.
 ## CRATE
 
 A separate project, and the opposite shape: Hoodpad is a board anyone can post
-to, CRATE is one token that is launched once. The supply opens a single pool and
-the position goes into a contract with no way out, so trading fees cannot be
-paid to anyone — the only thing that can be done with them is to put them back
-into the same position. See [`crate/README.md`](crate/README.md).
+to, CRATE is one token that is launched once. The supply opens a single Uniswap
+v4 position against native ETH, owned by a contract with no way to give it back,
+so trading fees cannot be paid to anyone — the only thing that can be done with
+them is to put them back into the same position. See
+[`crate/README.md`](crate/README.md).
 
 Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
 [`hoodpad/README.md`](hoodpad/README.md) for running the app, and

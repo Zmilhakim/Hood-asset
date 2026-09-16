@@ -4,6 +4,8 @@
 import { createPublicClient, defineChain, http, isAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+import { extsloadAbi } from "./pool.mjs";
+
 export const DEFAULT_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
 export const ROBINHOOD_CHAIN_ID = 4663;
 
@@ -108,68 +110,36 @@ export async function connect() {
   return { chain, publicClient, rpcUrl };
 }
 
-const positionManagerAbi = [
-  { type: "function", name: "factory", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
-  { type: "function", name: "WETH9", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
-];
-
-const dexFactoryAbi = [
-  {
-    type: "function",
-    name: "feeAmountTickSpacing",
-    inputs: [{ type: "uint24" }],
-    outputs: [{ type: "int24" }],
-    stateMutability: "view",
-  },
-];
+const ownerAbi = [{ type: "function", name: "owner", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" }];
 
 /**
- * Checks the venue against itself rather than against a documentation page: the
- * position manager knows which factory and which WETH it was deployed against,
- * so reading them back is the difference between "a doc said so" and "the chain
- * says so". Returns the WETH the venue actually uses, and the tier's spacing.
+ * Checks the venue is what it claims to be before anything is spent on it.
+ *
+ * There is no factory to cross-examine in v4 — one manager holds every pool — so
+ * what can be checked is that the address answers the two surfaces this launch
+ * depends on: `extsload`, which is how the pool's price is read, and `owner`,
+ * which every deployed PoolManager has. An address that answers both is a
+ * PoolManager; an address that answers neither is a typo.
  */
-export async function checkVenue(publicClient, { dexFactory, positionManager, fee }) {
-  for (const [label, address] of [
-    ["DEX_FACTORY", dexFactory],
-    ["POSITION_MANAGER", positionManager],
-  ]) {
-    const code = await publicClient.getCode({ address });
-    if (!code || code === "0x") fail(`${label} (${address}) has no code on this chain — check the address`);
-  }
+export async function checkPoolManager(publicClient, poolManager) {
+  const code = await publicClient.getCode({ address: poolManager });
+  if (!code || code === "0x") fail(`POOL_MANAGER (${poolManager}) has no code on this chain — check the address`);
 
-  let declaredFactory;
-  let declaredWeth;
+  let owner;
   try {
-    [declaredFactory, declaredWeth] = await Promise.all([
-      publicClient.readContract({ address: positionManager, abi: positionManagerAbi, functionName: "factory" }),
-      publicClient.readContract({ address: positionManager, abi: positionManagerAbi, functionName: "WETH9" }),
+    [, owner] = await Promise.all([
+      publicClient.readContract({
+        address: poolManager,
+        abi: extsloadAbi,
+        functionName: "extsload",
+        args: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+      }),
+      publicClient.readContract({ address: poolManager, abi: ownerAbi, functionName: "owner" }),
     ]);
   } catch {
-    fail(
-      `POSITION_MANAGER (${positionManager}) does not answer factory()/WETH9() — it is not a Uniswap v3 position manager`,
-    );
+    fail(`POOL_MANAGER (${poolManager}) does not answer extsload()/owner() — it is not a Uniswap v4 pool manager`);
   }
 
-  if (declaredFactory.toLowerCase() !== dexFactory.toLowerCase()) {
-    fail(
-      `the position manager belongs to factory ${declaredFactory}, not ${dexFactory}`,
-      "these two must be from the same deployment or packing will revert",
-    );
-  }
-
-  if (process.env.WETH && process.env.WETH.toLowerCase() !== declaredWeth.toLowerCase()) {
-    fail(`WETH ${process.env.WETH} is not the WETH this position manager uses (${declaredWeth})`);
-  }
-
-  const spacing = await publicClient.readContract({
-    address: dexFactory,
-    abi: dexFactoryAbi,
-    functionName: "feeAmountTickSpacing",
-    args: [fee],
-  });
-  if (spacing === 0) fail(`the venue does not run a ${fee / 10_000}% fee tier — pick one it does`);
-
-  console.log(`venue      factory and position manager agree, WETH ${declaredWeth}, tier ${fee} spacing ${spacing}`);
-  return { weth: declaredWeth, spacing };
+  console.log(`venue      pool manager ${poolManager}, owner ${owner}`);
+  return { owner };
 }

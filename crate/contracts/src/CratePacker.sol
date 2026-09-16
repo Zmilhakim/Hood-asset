@@ -1,39 +1,54 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 import {CrateSeal} from "./CrateSeal.sol";
 import {CrateToken} from "./CrateToken.sol";
-import {INonfungiblePositionManager, IUniswapV3Factory, IUniswapV3Pool} from "./interfaces/IUniswapV3.sol";
 
 /// @title CratePacker
 /// @notice Packs the crate, once.
 ///
-/// This contract launches exactly one token, with a name and ticker it cannot
-/// be talked out of, in a single transaction:
+/// This contract launches exactly one token, with a name and ticker it cannot be
+/// talked out of, in a single transaction:
 ///
-///   1. mint the whole fixed supply,
-///   2. open a pool holding all of it and no ETH,
-///   3. hand the position to a seal that has no way to give it back.
+///   1. mint the whole fixed supply, straight to the seal,
+///   2. open a Uniswap v4 pool against native ETH, priced so the whole supply
+///      sits on the token's side of it,
+///   3. tell the seal to put all of it in, which it can only do once.
 ///
-/// After that transaction `packed` is true and every entrypoint here is either a
-/// view or reverts. There is no second token, no owner function, no treasury and
-/// no fee. The address that packed it holds nothing afterwards, because the
-/// supply never passed through it — it went from mint to pool inside one call.
+/// Afterwards `packed` is true and every entrypoint here is either a view or
+/// reverts. There is no second token, no owner function, no treasury and no fee.
+/// The address that packed it holds nothing, because the supply never passed
+/// through this contract either: it was minted to the seal.
 ///
-/// Tick math lives off-chain, where it belongs, but the invariant that makes the
-/// pool single-sided is enforced here: the range must sit entirely on the
-/// token's side of spot, so the position manager can never pull ETH from the
-/// packer and the packer can never keep a slice of the supply.
-contract CratePacker is ReentrancyGuard {
+/// Two things v4 gives this design that v3 could not:
+///
+/// The pool's other side is native ETH, which is `address(0)` and therefore
+/// always `currency0`. So the token is always `currency1`, the supply always
+/// sits *below* spot, and there is no address-ordering puzzle to solve — the v3
+/// version of this contract needed CREATE2 and an address prediction just to
+/// know which way round the pool would be. There is no WETH in this launch at
+/// all.
+///
+/// And the pool has no hook. `hooks` is the zero address, which is a permanent
+/// property of the pool key: there is no code that runs on swaps, no place to
+/// put an upgrade, and no fee that can be switched on later.
+contract CratePacker {
+    using StateLibrary for IPoolManager;
+
     struct PackParams {
-        bytes32 salt; // CREATE2 salt, so the token address is known before the tx
+        uint24 fee; // static LP fee, hundredths of a bip; 10000 is 1%
+        int24 tickSpacing;
         uint160 sqrtPriceX96; // initialization price, computed off-chain
         int24 tickLower;
         int24 tickUpper;
-        uint24 fee; // pool fee tier, e.g. 10000 for 1%
     }
 
     /// @notice The whole supply. Not a parameter, and minted exactly once.
@@ -42,9 +57,7 @@ contract CratePacker is ReentrancyGuard {
     string public constant TOKEN_NAME = "Crate";
     string public constant TOKEN_SYMBOL = "CRATE";
 
-    address public immutable weth;
-    IUniswapV3Factory public immutable dexFactory;
-    INonfungiblePositionManager public immutable positionManager;
+    IPoolManager public immutable poolManager;
     CrateSeal public immutable seal;
 
     /// @notice The account that deployed this packer and may call `pack`. It has
@@ -52,147 +65,105 @@ contract CratePacker is ReentrancyGuard {
     address public immutable packer;
 
     address public token;
-    address public pool;
-    uint256 public positionId;
+    int24 public tickLower;
+    int24 public tickUpper;
     uint256 public packedAt;
     bool public packed;
 
+    PoolKey internal _key;
+
     error AlreadyPacked();
+    error BadFee();
     error BadRange();
-    error NoLiquidity();
     error NotPacker();
     error NotSingleSided();
-    error UnsupportedFee();
     error ZeroAddress();
 
-    event Packed(address indexed token, address indexed pool, uint256 positionId, uint128 liquidity);
+    event Packed(address indexed token, PoolId indexed poolId, uint128 liquidity);
 
-    constructor(address weth_, IUniswapV3Factory dexFactory_, INonfungiblePositionManager positionManager_) {
-        if (weth_ == address(0) || address(dexFactory_) == address(0) || address(positionManager_) == address(0)) {
-            revert ZeroAddress();
-        }
+    constructor(IPoolManager poolManager_) {
+        if (address(poolManager_) == address(0)) revert ZeroAddress();
 
-        weth = weth_;
-        dexFactory = dexFactory_;
-        positionManager = positionManager_;
+        poolManager = poolManager_;
         packer = msg.sender;
-        seal = new CrateSeal(positionManager_);
+        seal = new CrateSeal(poolManager_);
     }
 
-    // ----------------------------------------------------------------- packing
-
-    /// @notice Mint the supply, open the pool with all of it, and seal the
-    /// position. Reverts on the second call, forever.
-    function pack(PackParams calldata params)
-        external
-        nonReentrant
-        returns (address token_, address pool_, uint256 positionId_)
-    {
+    /// @notice Mint the supply, open the pool, and seal the liquidity. Reverts on
+    /// the second call, forever.
+    function pack(PackParams calldata params) external returns (address token_, PoolId poolId, uint128 liquidity) {
         if (msg.sender != packer) revert NotPacker();
         if (packed) revert AlreadyPacked();
 
-        int24 spacing = dexFactory.feeAmountTickSpacing(params.fee);
-        if (spacing == 0) revert UnsupportedFee();
+        // A dynamic fee needs a hook to set it, and this pool has no hook. The
+        // pool manager would refuse it too; saying so here names the mistake.
+        if (LPFeeLibrary.isDynamicFee(params.fee) || params.fee > LPFeeLibrary.MAX_LP_FEE) revert BadFee();
+        if (params.tickSpacing <= 0) revert BadRange();
         if (params.tickLower >= params.tickUpper) revert BadRange();
-        if (params.tickLower % spacing != 0 || params.tickUpper % spacing != 0) revert BadRange();
+        if (params.tickLower % params.tickSpacing != 0 || params.tickUpper % params.tickSpacing != 0) {
+            revert BadRange();
+        }
 
-        // CREATE2 so the caller already knows which address the token lands on,
-        // and therefore which side of the pool it sits on. Those ticks were
-        // computed against this exact address.
-        token_ = address(new CrateToken{salt: params.salt}(TOKEN_NAME, TOKEN_SYMBOL, SUPPLY, address(this)));
+        token_ = address(new CrateToken(TOKEN_NAME, TOKEN_SYMBOL, SUPPLY, address(seal)));
 
-        uint128 liquidity;
-        (pool_, positionId_, liquidity) = _openSealedPool(token_, params);
+        PoolKey memory key = PoolKey({
+            currency0: CurrencyLibrary.ADDRESS_ZERO, // native ETH, and so always the lower currency
+            currency1: Currency.wrap(token_),
+            fee: params.fee,
+            tickSpacing: params.tickSpacing,
+            hooks: IHooks(address(0))
+        });
+        poolId = key.toId();
+
+        // Anyone can initialise a pool, and the token's address is predictable
+        // from this contract's nonce, so an already-priced pool is used as it
+        // stands rather than treated as an error — initialising twice would
+        // revert and strand this packer. What protects the launch is the
+        // single-sided check below, which reads the price that is actually
+        // there. A price that would make this launch buy its own supply reverts
+        // the whole transaction, and `pack` can be run again against a range
+        // computed for the price someone else set.
+        (uint160 existingPrice, int24 existingTick,,) = poolManager.getSlot0(poolId);
+        int24 tick = existingPrice == 0 ? poolManager.initialize(key, params.sqrtPriceX96) : existingTick;
+
+        // The whole range has to sit below spot. A range reaching above it would
+        // need ETH as well, and the seal has none to give — it would revert
+        // there rather than here, which is a worse place to learn it.
+        if (params.tickUpper > tick) revert NotSingleSided();
 
         packed = true;
         packedAt = block.timestamp;
         token = token_;
-        pool = pool_;
-        positionId = positionId_;
+        tickLower = params.tickLower;
+        tickUpper = params.tickUpper;
+        _key = key;
 
-        emit Packed(token_, pool_, positionId_, liquidity);
-    }
+        liquidity = seal.sealIn(key, params.tickLower, params.tickUpper);
 
-    // ---------------------------------------------------------------- internal
-
-    function _openSealedPool(address token_, PackParams calldata params)
-        private
-        returns (address pool_, uint256 positionId_, uint128 liquidity)
-    {
-        (address token0, address token1) = token_ < weth ? (token_, weth) : (weth, token_);
-        bool tokenIsToken0 = token_ == token0;
-
-        pool_ = dexFactory.getPool(token0, token1, params.fee);
-        if (pool_ == address(0)) pool_ = dexFactory.createPool(token0, token1, params.fee);
-
-        // A pool for this pair can be created and initialised by anyone, so an
-        // already-priced pool is used as it stands rather than treated as an
-        // error — initialising twice would revert and strand this packer. What
-        // protects the launch is the single-sided check below, which reads the
-        // price that is actually there. A price that would make this launch
-        // give ETH away reverts the whole transaction, and `pack` can be run
-        // again against a range computed for the price someone else set.
-        (uint160 existingPrice,,,,,,) = IUniswapV3Pool(pool_).slot0();
-        if (existingPrice == 0) IUniswapV3Pool(pool_).initialize(params.sqrtPriceX96);
-
-        (, int24 currentTick,,,,,) = IUniswapV3Pool(pool_).slot0();
-
-        // The whole range has to sit on the token's side of spot. If it straddles
-        // spot the position manager would ask for ETH as well, and this launch
-        // has none to give.
-        if (tokenIsToken0) {
-            if (params.tickLower < currentTick) revert NotSingleSided();
-        } else {
-            if (params.tickUpper > currentTick) revert NotSingleSided();
-        }
-
-        IERC20(token_).approve(address(positionManager), SUPPLY);
-
-        (positionId_, liquidity,,) = positionManager.mint(
-            INonfungiblePositionManager.MintParams({
-                token0: token0,
-                token1: token1,
-                fee: params.fee,
-                tickLower: params.tickLower,
-                tickUpper: params.tickUpper,
-                amount0Desired: tokenIsToken0 ? SUPPLY : 0,
-                amount1Desired: tokenIsToken0 ? 0 : SUPPLY,
-                amount0Min: 0,
-                amount1Min: 0,
-                recipient: address(seal),
-                deadline: block.timestamp
-            })
-        );
-
-        if (liquidity == 0) revert NoLiquidity();
-
-        IERC20(token_).approve(address(positionManager), 0);
-        seal.sealPosition(positionId_, token0, token1);
-
-        // Whatever rounding left behind is destroyed rather than kept, so packing
-        // never ends with a stray balance in this contract.
-        uint256 dust = IERC20(token_).balanceOf(address(this));
-        if (dust > 0) CrateToken(token_).burn(dust);
+        emit Packed(token_, poolId, liquidity);
     }
 
     // ------------------------------------------------------------------- views
 
-    /// @notice The address `pack` will deploy for this salt. Read it first,
-    /// compare it against WETH to learn the pool ordering, and compute the ticks
-    /// against the answer.
-    function predictToken(bytes32 salt) external view returns (address) {
-        bytes32 initCodeHash = keccak256(
-            abi.encodePacked(type(CrateToken).creationCode, abi.encode(TOKEN_NAME, TOKEN_SYMBOL, SUPPLY, address(this)))
-        );
-        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, initCodeHash)))));
+    /// @notice The pool the supply was packed into. Empty until packed.
+    function poolKey() external view returns (PoolKey memory) {
+        return _key;
     }
 
     /// @notice Everything a reader needs to check the crate, in one call.
     function crate()
         external
         view
-        returns (address token_, address pool_, address seal_, uint256 positionId_, uint256 packedAt_, uint256 supply)
+        returns (
+            address token_,
+            PoolId poolId,
+            address seal_,
+            int24 tickLower_,
+            int24 tickUpper_,
+            uint256 packedAt_,
+            uint256 supply
+        )
     {
-        return (token, pool, address(seal), positionId, packedAt, SUPPLY);
+        return (token, _key.toId(), address(seal), tickLower, tickUpper, packedAt, SUPPLY);
     }
 }

@@ -1,11 +1,11 @@
 // Tick math, off-chain, where it belongs. The packer enforces the invariant
 // that keeps a launch single-sided; it does not compute prices, so this is what
-// turns "the first CRATE costs this much ETH" into the four numbers `pack`
-// takes.
+// turns "the first CRATE costs this much ETH" into the numbers `pack` takes.
 //
-// getSqrtRatioAtTick is Uniswap's TickMath, transliterated. It is exact, which
-// matters: an approximation could land the pool one tick away from the range
-// edge, and the packer would refuse the launch.
+// getSqrtPriceAtTick is Uniswap v4's TickMath, transliterated rather than
+// approximated. That matters: the launch initialises the pool at exactly the
+// top of the range, and a price one tick off would be a launch the packer
+// refuses.
 
 export const MIN_TICK = -887272;
 export const MAX_TICK = 887272;
@@ -35,7 +35,7 @@ const MAGIC = [
   [0x80000n, 0x48a170391f7dc42444e8fa2n],
 ];
 
-export function getSqrtRatioAtTick(tick) {
+export function getSqrtPriceAtTick(tick) {
   if (!Number.isInteger(tick) || tick < MIN_TICK || tick > MAX_TICK) throw new RangeError(`tick out of range: ${tick}`);
 
   const absTick = BigInt(Math.abs(tick));
@@ -57,7 +57,7 @@ export function tickAtOrBelow(sqrtPriceX96) {
   let high = MAX_TICK;
   while (low < high) {
     const mid = Math.ceil((low + high) / 2);
-    if (getSqrtRatioAtTick(mid) <= sqrtPriceX96) low = mid;
+    if (getSqrtPriceAtTick(mid) <= sqrtPriceX96) low = mid;
     else high = mid - 1;
   }
   return low;
@@ -103,39 +103,34 @@ export const alignUp = (tick, spacing) => Math.ceil(tick / spacing) * spacing;
 /**
  * The launch range for a crate priced in ETH.
  *
- * The whole supply goes in on the token's side of spot, and spot is set exactly
- * at the near edge of that range, so the first buy fills immediately and the
- * pool never asks the packer for ETH it does not have.
+ * In v4 the other side of the pool is native ETH, which is address zero and so
+ * is always currency0. CRATE is therefore always currency1 — there is no
+ * ordering to discover — and a pool prices currency1 in currency0, which here
+ * means CRATE per ETH. That runs the opposite way to the price being quoted: a
+ * dearer token is a *lower* tick, so the floor price is the top of the range
+ * and the ceiling is the bottom.
  *
- * @param tokenIsToken0 whether the token address sorts below WETH.
- * @param floorEthPerToken price of one token in ETH at the near edge.
- * @param ceilEthPerToken  price of one token in ETH at the far edge.
+ * The whole supply goes in below spot, and spot starts at the top of the range:
+ * the point where CRATE is cheapest, so the first buy fills immediately and the
+ * pool never asks the seal for ETH it does not have.
+ *
+ * @param floorEthPerToken price of one token in ETH where selling starts.
+ * @param ceilEthPerToken  price of one token in ETH at the far end of the range.
  */
-export function launchRange({ tokenIsToken0, floorEthPerToken, ceilEthPerToken, spacing }) {
+export function launchRange({ floorEthPerToken, ceilEthPerToken, tickSpacing }) {
   const floor = toRatio(floorEthPerToken);
   const ceil = toRatio(ceilEthPerToken);
   if (floor.num * ceil.den >= ceil.num * floor.den) throw new Error("the ceiling price must be above the floor price");
 
-  // A pool prices token1 in token0. When the token is token1 that is tokens per
-  // ETH, which runs the opposite way to the price being quoted — a dearer token
-  // is a *lower* tick — and every comparison below has to follow it round.
-  const poolPrice = ({ num, den }) => (tokenIsToken0 ? { num, den } : { num: den, den: num });
-  const tickOf = (price) => tickAtOrBelow(sqrtPriceX96FromRatio(poolPrice(price)));
+  // Inverted on the way in, because the pool counts CRATE per ETH.
+  const tickOf = ({ num, den }) => tickAtOrBelow(sqrtPriceX96FromRatio({ num: den, den: num }));
 
-  const floorTick = tickOf(floor);
-  const ceilTick = tickOf(ceil);
-
-  // Aligning both edges the same way keeps the promise the prices made: the
-  // supply never starts selling below the floor that was asked for, and never
-  // runs out below the ceiling.
-  const align = tokenIsToken0 ? alignUp : alignDown;
-  const tickLower = align(tokenIsToken0 ? floorTick : ceilTick, spacing);
-  const tickUpper = align(tokenIsToken0 ? ceilTick : floorTick, spacing);
+  // Both edges round the same way, which keeps the promise the prices made: a
+  // lower tick is a dearer token, so rounding down never starts the sale below
+  // the floor that was asked for, and never stops it below the ceiling.
+  const tickUpper = alignDown(tickOf(floor), tickSpacing);
+  const tickLower = alignDown(tickOf(ceil), tickSpacing);
   if (tickLower >= tickUpper) throw new Error("the two prices land on the same tick — widen the range");
 
-  // Spot sits at the edge the supply starts from, so the position holds only
-  // the token: all of it above spot if it is token0, all of it below if not.
-  const currentTick = tokenIsToken0 ? tickLower : tickUpper;
-
-  return { tickLower, tickUpper, sqrtPriceX96: getSqrtRatioAtTick(currentTick), currentTick };
+  return { tickLower, tickUpper, sqrtPriceX96: getSqrtPriceAtTick(tickUpper), currentTick: tickUpper };
 }

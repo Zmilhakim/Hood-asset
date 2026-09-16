@@ -10,7 +10,7 @@ import {
   Q96,
   alignDown,
   alignUp,
-  getSqrtRatioAtTick,
+  getSqrtPriceAtTick,
   launchRange,
   parseDecimal,
   sqrtBigInt,
@@ -20,24 +20,24 @@ import {
 
 const SPACING = 200;
 
-test("getSqrtRatioAtTick agrees with Uniswap at the points everyone publishes", () => {
-  assert.equal(getSqrtRatioAtTick(0), Q96);
-  assert.equal(getSqrtRatioAtTick(MIN_TICK), 4295128739n); // MIN_SQRT_RATIO
-  assert.equal(getSqrtRatioAtTick(MAX_TICK), 1461446703485210103287273052203988822378723970342n); // MAX_SQRT_RATIO
+test("getSqrtPriceAtTick agrees with Uniswap at the points everyone publishes", () => {
+  assert.equal(getSqrtPriceAtTick(0), Q96);
+  assert.equal(getSqrtPriceAtTick(MIN_TICK), 4295128739n); // TickMath.MIN_SQRT_PRICE
+  assert.equal(getSqrtPriceAtTick(MAX_TICK), 1461446703485210103287273052203988822378723970342n); // MAX_SQRT_PRICE
 
-  assert.throws(() => getSqrtRatioAtTick(MIN_TICK - 1), RangeError);
-  assert.throws(() => getSqrtRatioAtTick(MAX_TICK + 1), RangeError);
+  assert.throws(() => getSqrtPriceAtTick(MIN_TICK - 1), RangeError);
+  assert.throws(() => getSqrtPriceAtTick(MAX_TICK + 1), RangeError);
 });
 
 test("a tick survives the round trip through its price", () => {
-  for (const tick of [MIN_TICK, -400_001, -184_200, -1, 0, 1, 200, 60_000, 887_271, MAX_TICK]) {
-    assert.equal(tickAtOrBelow(getSqrtRatioAtTick(tick)), tick, `tick ${tick} did not come back`);
+  for (const tick of [MIN_TICK, -400_001, -184_200, -1, 0, 1, 200, 60_000, 207_200, 887_271, MAX_TICK]) {
+    assert.equal(tickAtOrBelow(getSqrtPriceAtTick(tick)), tick, `tick ${tick} did not come back`);
   }
 
   // And the price really is monotonic in the tick, which is what the search
   // above leans on.
   for (const tick of [-100_000, -1, 0, 1, 100_000]) {
-    assert.ok(getSqrtRatioAtTick(tick) < getSqrtRatioAtTick(tick + 1));
+    assert.ok(getSqrtPriceAtTick(tick) < getSqrtPriceAtTick(tick + 1));
   }
 });
 
@@ -59,74 +59,69 @@ test("prices are read as decimals, not as floats", () => {
 test("alignment moves to the grid, never off it", () => {
   assert.equal(alignUp(-184_207, SPACING), -184_200);
   assert.equal(alignDown(-184_207, SPACING), -184_400);
+  assert.equal(alignDown(207_232, SPACING), 207_200);
   assert.equal(alignUp(400, SPACING), 400);
   assert.equal(alignDown(400, SPACING), 400);
 });
 
-test("a launch range satisfies the rule the packer enforces, whichever side the token lands on", () => {
+test("a launch range satisfies the rule the packer enforces", () => {
   const prices = [
-    ["0.00000001", "0.000001"],
-    ["0.000000001", "0.0001"],
-    ["1", "50"],
+    ["0.000000001", "0.0000001"],
+    ["0.00000000001", "0.00001"],
+    ["0.5", "50"],
   ];
 
-  for (const tokenIsToken0 of [true, false]) {
-    for (const [floorEthPerToken, ceilEthPerToken] of prices) {
-      const range = launchRange({ tokenIsToken0, floorEthPerToken, ceilEthPerToken, spacing: SPACING });
+  for (const [floorEthPerToken, ceilEthPerToken] of prices) {
+    const range = launchRange({ floorEthPerToken, ceilEthPerToken, tickSpacing: SPACING });
 
-      assert.ok(range.tickLower < range.tickUpper, "the range is upside down");
-      // `=== 0` rather than assert.equal: a negative tick divides to -0.
-      assert.ok(range.tickLower % SPACING === 0, "tickLower is off the spacing grid");
-      assert.ok(range.tickUpper % SPACING === 0, "tickUpper is off the spacing grid");
+    assert.ok(range.tickLower < range.tickUpper, "the range is upside down");
+    // `=== 0` rather than assert.equal: a negative tick divides to -0.
+    assert.ok(range.tickLower % SPACING === 0, "tickLower is off the spacing grid");
+    assert.ok(range.tickUpper % SPACING === 0, "tickUpper is off the spacing grid");
 
-      // This is the pool's own reading of the price it will be initialised at.
-      const poolTick = tickAtOrBelow(range.sqrtPriceX96);
-      assert.equal(poolTick, range.currentTick, "the pool would not report the tick we aimed at");
+    // This is the pool's own reading of the price it will be initialised at.
+    const poolTick = tickAtOrBelow(range.sqrtPriceX96);
+    assert.equal(poolTick, range.currentTick, "the pool would not report the tick we aimed at");
 
-      // CratePacker: the whole range must sit on the token's side of spot.
-      if (tokenIsToken0) assert.ok(range.tickLower >= poolTick, "range dips below spot");
-      else assert.ok(range.tickUpper <= poolTick, "range reaches above spot");
-    }
+    // CratePacker: the range must sit at or below spot, because CRATE is always
+    // currency1 and the seal has no ETH to put in.
+    assert.ok(range.tickUpper <= poolTick, "range reaches above spot");
   }
 });
 
+test("a dearer token is a lower tick, because the pool counts the other way", () => {
+  const cheap = launchRange({ floorEthPerToken: "0.000000001", ceilEthPerToken: "0.0000001", tickSpacing: SPACING });
+  const dear = launchRange({ floorEthPerToken: "0.00000001", ceilEthPerToken: "0.000001", tickSpacing: SPACING });
+
+  assert.ok(dear.tickUpper < cheap.tickUpper, "a ten-times dearer floor should sit ten times lower in tick terms");
+  // ln(10)/ln(1.0001) is about 23026 ticks, aligned down to the 200 grid.
+  assert.equal(cheap.tickUpper - dear.tickUpper, 23_000);
+});
+
 test("an exact ratio describes the same range as the decimal it came from", () => {
-  const spacing = SPACING;
   const asText = launchRange({
-    tokenIsToken0: true,
     floorEthPerToken: "0.00000001",
     ceilEthPerToken: "0.000001",
-    spacing,
+    tickSpacing: SPACING,
   });
   // What pack.mjs does: a market cap in ETH divided across the whole supply,
   // which has no exact decimal form and so is carried as a fraction.
   const asRatio = launchRange({
-    tokenIsToken0: true,
     floorEthPerToken: { num: 1n, den: 100_000_000n },
     ceilEthPerToken: { num: 1n, den: 1_000_000n },
-    spacing,
+    tickSpacing: SPACING,
   });
   assert.deepEqual(asRatio, asText);
 });
 
-test("the same prices describe the same range from either side of the pool", () => {
-  const args = { floorEthPerToken: "0.00000002", ceilEthPerToken: "0.000002", spacing: SPACING };
-  const asToken0 = launchRange({ ...args, tokenIsToken0: true });
-  const asToken1 = launchRange({ ...args, tokenIsToken0: false });
-
-  // Inverting the price mirrors the tick, so the two ranges are reflections.
-  assert.equal(asToken0.tickLower, -asToken1.tickUpper);
-  assert.equal(asToken0.tickUpper, -asToken1.tickLower);
-});
-
 test("a range that cannot be built is refused rather than rounded into shape", () => {
-  const spacing = SPACING;
-  assert.throws(() => launchRange({ tokenIsToken0: true, floorEthPerToken: "1", ceilEthPerToken: "1", spacing }));
-  assert.throws(() => launchRange({ tokenIsToken0: true, floorEthPerToken: "2", ceilEthPerToken: "1", spacing }));
-  // Two prices a hair apart land on one tick, and a zero-width range is not a
-  // launch. Say so instead of shipping it.
+  const tickSpacing = SPACING;
+  assert.throws(() => launchRange({ floorEthPerToken: "1", ceilEthPerToken: "1", tickSpacing }));
+  assert.throws(() => launchRange({ floorEthPerToken: "2", ceilEthPerToken: "1", tickSpacing }));
+  // Two prices close enough together land in the same slot of the spacing grid,
+  // and a zero-width range is not a launch. Say so instead of shipping it.
   assert.throws(
-    () => launchRange({ tokenIsToken0: true, floorEthPerToken: "1", ceilEthPerToken: "1.000001", spacing }),
+    () => launchRange({ floorEthPerToken: "0.99", ceilEthPerToken: "0.9999", tickSpacing }),
     /widen the range/,
   );
 });

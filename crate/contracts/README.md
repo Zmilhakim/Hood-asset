@@ -1,18 +1,19 @@
 # CRATE — contracts
 
-Three contracts, compiled with solc-js and tested on a local EVM against a
-Uniswap stand-in. No Hardhat, no Foundry, no network access needed.
+Three contracts on **Uniswap v4**, compiled with solc-js and tested on a local
+EVM against Uniswap's own `PoolManager`, deployed as it ships. No Hardhat, no
+Foundry, no network access needed.
 
-| Contract      | Job                                                                      |
-| ------------- | ------------------------------------------------------------------------ |
-| `CrateToken`  | Fixed-supply ERC20. No mint, no owner, no pause.                          |
-| `CratePacker` | Packs the crate, once: mints the supply, opens the pool, seals the position. |
-| `CrateSeal`   | Holds the position forever. Fees go back into it; nothing comes out.      |
+| Contract      | Job                                                                        |
+| ------------- | -------------------------------------------------------------------------- |
+| `CrateToken`  | Fixed-supply ERC20. No mint, no owner, no pause.                            |
+| `CratePacker` | Packs the crate, once: mints the supply, opens the pool, seals the liquidity. |
+| `CrateSeal`   | Owns the liquidity forever. Fees go back into it; nothing comes out.        |
 
 ```bash
 npm install
-npm run compile   # writes out/
-npm test          # compiles first, then packs a crate on a local EVM
+npm run compile   # writes out/, PoolManager included
+npm test          # compiles, then packs a crate and trades against it
 npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 ```
@@ -21,48 +22,58 @@ npm run pack      # pulls the lever, once — prints the plan first
 
 `pack` is a single transaction:
 
-1. Deploys the token with CREATE2 and mints the entire fixed supply — 1,000,000,000
-   CRATE — to the packer.
-2. Creates the Uniswap v3 pool, initialises it, and mints one position holding
-   the whole supply and no ETH.
-3. Sends that position to `CrateSeal` and burns whatever dust is left.
+1. Deploys the token and mints the entire fixed supply — 1,000,000,000 CRATE —
+   straight to the seal.
+2. Opens a v4 pool of **native ETH against CRATE**, with no hook, and prices it
+   at the top of the launch range.
+3. Tells the seal to put the whole balance in as one position.
 
 Afterwards `packed` is true and there is no second launch. The address that
-packed it holds nothing, because the supply never rested there: it went from
-mint to pool inside one call.
+packed it holds nothing, and neither does the packer contract: the supply was
+minted to the seal and never passed through either.
 
-## The two parts worth reading twice
+## What v4 changes
 
-**The launch is single-sided, and that is enforced on chain.** Tick math lives
-off-chain, where it belongs, but the contract reads the pool's tick after
-initialisation and rejects any range that straddles it. So the position manager
-can never pull ETH from the packer, and the packer can never keep a slice of the
-supply. That only works if the caller knows which side of the pool the token will
-land on, which depends on its address — hence CREATE2 and `predictToken`.
-`test/contracts.test.mjs` checks `predictToken` against a CREATE2 address
-recomputed independently from the standalone artifact: if solc ever embedded
-different creation code inside the packer, that test fails rather than the
-launch.
+**There is no WETH, and no address-ordering puzzle.** The pool's other side is
+native ETH, which is `address(0)` and therefore always `currency0`. CRATE is
+always `currency1`, so its supply always sits *below* spot. The v3 version of
+this needed CREATE2 and an on-chain address prediction purely to work out which
+way round the pool would be. That is all gone.
 
-**The seal is structural, not a promise.** `CrateSeal` has no function that
-decreases liquidity, transfers the position, approves an operator on it, or
-sends a balance to an address the caller picks. It calls `collect` in exactly one
-place, with the recipient hardcoded to itself, and the only thing that call can
-lead to is `increaseLiquidity` back into the same position. Anyone may pay the
-gas for that — `compound` takes no arguments and pays the caller nothing — so
-there is no privileged party, not even the address that packed it.
+**There is no position NFT.** A v4 position is a row in the pool manager keyed by
+the address that added it. The seal is that address, so the position is not a
+thing that can be given away, sold, borrowed against or approved to someone by
+mistake. It can only shrink if the seal calls `modifyLiquidity` with a negative
+delta, and the seal has no such call. Search the file: every liquidity delta in
+it is zero or positive.
 
-What this means in practice: trading fees are not income. They are liquidity.
-The crate only gets heavier.
+**There is no hook.** `hooks` is the zero address, and a pool's hook is part of
+its key — so it is fixed at launch. No code runs on swaps, there is nowhere to
+put an upgrade, and no fee can be switched on later.
 
-One honest edge: a position sitting entirely on one side of spot only absorbs
-one of the two tokens, so the other waits in the seal until the range is
-crossed and a later `compound` can use it. It is inside the seal either way,
-and there is no path that takes it back out.
+## The seal, precisely
+
+`CrateSeal` has no function that removes liquidity, transfers anything, approves
+an operator, or names a recipient. Its `take` always names itself and its
+`settle` always pays the pool manager; neither is a parameter a caller can set.
+
+So value can enter the crate and cannot leave it. `compound` is the only thing
+that moves it once inside: it settles the fees the position has earned and puts
+them straight back in as liquidity. Anyone may pay the gas — it takes no
+arguments and pays its caller nothing — so there is no privileged party here at
+all, not even the address that packed it.
+
+**Fees are not income. They cannot leave.** One honest detail about where they
+sit: a position can only take the two currencies together at the pool's current
+ratio, so when one side of the pool has earned much more than the other — after a
+run of buys and no sells, say — `compound` can only put part of it back, and the
+rest waits in the seal. `compound` reverts with `NothingToAdd` when none of it
+can be paired yet. Either way the fees are inside the crate: the seal's balance
+is as unreachable as the position is.
 
 ## Pricing the launch
 
-`pack.mjs` turns two numbers into the four the contract wants:
+`pack.mjs` turns two numbers into the ones the contract wants:
 
 ```bash
 export PACKER=0x…          # what deploy.mjs printed
@@ -72,21 +83,36 @@ npm run pack               # prints the plan and sends nothing
 CONFIRM=pack npm run pack  # sends it
 ```
 
-Spot is initialised at the near edge of the range, so the first buy fills
-immediately and the pool never asks for ETH. `lib/ticks.mjs` is Uniswap's
-`TickMath` transliterated rather than approximated, because a price one tick
-off the range edge is a launch the packer refuses.
+Because CRATE is `currency1`, a dearer token is a *lower* tick: the floor price
+is the top of the range and the ceiling is the bottom. Spot is initialised at the
+top, so the first buy fills immediately and the pool never asks the seal for ETH.
+`lib/ticks.mjs` is v4's `TickMath` transliterated rather than approximated,
+because a price one tick off the range edge is a launch the packer refuses.
 
-A pool for this pair can be created and priced by anyone before you get there.
-Both the script and the contract handle that: the contract uses the price that
-is actually in the pool, and the script checks your range against it and stops
-with an explanation rather than a revert.
+A pool for this pair can be opened and priced by anyone before you get there —
+the token's address is predictable from the packer's nonce, and v4 lets a pool be
+initialised for a token that does not exist yet. Both the contract and the script
+handle it: the contract uses the price that is actually in the pool rather than
+reverting, and the script reads that price out of the manager's storage and stops
+with an explanation if your range no longer fits under it.
+
+## Testing against the real thing
+
+`test/contracts.test.mjs` deploys Uniswap's `PoolManager` — the shipped contract,
+not a model of it — packs the crate into it, buys with ETH, sells back, and then
+compounds. So the flash accounting, the tick crossing and the fee growth are
+Uniswap's own. `test/ticks.test.mjs` checks the off-chain price math against the
+constants Uniswap publishes, and one test checks that the pool id and price
+`lib/pool.mjs` derives off-chain are the ones the manager actually has.
+
+The EVM has to be Cancun or later: v4 keeps its lock and its deltas in transient
+storage.
 
 ## Not deployed
 
 Nothing here is on chain yet, and none of it is audited. `deploy.mjs` and
 `pack.mjs` check what they can before spending gas — that the RPC really is
-Robinhood Chain (4663), that the position manager and factory name each other,
-that the fee tier exists, that the crate is not already packed, that the key
-signing is the one the packer answers to — and `pack.mjs` simulates the whole
-transaction against the node before it will broadcast.
+Robinhood Chain (4663), that the pool manager answers like one, that the crate is
+not already packed, that the key signing is the one the packer answers to — and
+`pack.mjs` simulates the whole transaction against the node before it will
+broadcast.
