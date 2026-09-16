@@ -40,9 +40,10 @@ export function TickerNotice() {
             </div>
           </dl>
           <p className="mt-3 max-w-prose text-xs leading-5 text-ink-soft/70">
-            That last address is the one that posted this notice and deployed the board. It holds no {TICKER}. That is
-            a balance anyone can look up, which is the only useful form the sentence &ldquo;the team holds
-            nothing&rdquo; can take.
+            That last address posted this notice and deployed the board. None of the supply was held back for it —
+            the whole billion went into the pool and stayed there. What it does hold is trading fees the pool has
+            paid out, which is the one thing any poster keeps. Both of those are balances anyone can look up, which
+            is the only useful form a sentence like &ldquo;the team holds nothing&rdquo; can take.
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <Link href="/board" className={buttonClasses("quiet")}>
