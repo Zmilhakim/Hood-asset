@@ -5,12 +5,12 @@ export const ROBINHOOD_CHAIN_ID = 4663;
 /**
  * Robinhood Chain — an Arbitrum Orbit L2 settling to Ethereum. Gas is paid in ETH.
  *
- * The defaults below come from public RPC/explorer listings. Verify them against
- * docs.robinhood.com/chain/connecting before pointing a production deploy at them,
- * and override with NEXT_PUBLIC_RPC_URL / NEXT_PUBLIC_EXPLORER_URL when you run
- * your own node.
+ * The RPC default is Robinhood's own public endpoint, which is rate-limited and
+ * meant for wallets and light use. Point NEXT_PUBLIC_RPC_URL at a dedicated
+ * provider before this sees real traffic; NEXT_PUBLIC_EXPLORER_URL overrides the
+ * explorer the "↗" links open.
  */
-export const DEFAULT_RPC_URL = "https://rpc.nodeflare.app/robinhood/public";
+export const DEFAULT_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
 export const DEFAULT_EXPLORER_URL = "https://robinhoodchain.blockscout.com";
 
 const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || DEFAULT_RPC_URL;

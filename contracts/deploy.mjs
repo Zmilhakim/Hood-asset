@@ -5,7 +5,7 @@
 // before you spend gas.
 //
 //   DEPLOYER_KEY=0x…      the account that pays and becomes nothing special
-//   RPC_URL=https://…     defaults to the public endpoint
+//   RPC_URL=https://…     defaults to Robinhood's own public endpoint
 //   DEX_FACTORY=0x…       IUniswapV3Factory
 //   POSITION_MANAGER=0x…  INonfungiblePositionManager
 //   TREASURY=0x…          receives the posting fee
@@ -39,11 +39,13 @@ if (process.env.WETH && !isAddress(process.env.WETH)) {
   process.exit(1);
 }
 
+const rpcUrl = process.env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+
 const robinhood = defineChain({
   id: 4663,
   name: "Robinhood Chain",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [process.env.RPC_URL || "https://rpc.nodeflare.app/robinhood/public"] } },
+  rpcUrls: { default: { http: [rpcUrl] } },
 });
 
 // Validate the key's shape before handing it to the crypto library, which
@@ -88,6 +90,28 @@ const publicClient = createPublicClient({ chain: robinhood, transport: http() })
 const wallet = createWalletClient({ account, chain: robinhood, transport: http() });
 
 const postingFee = BigInt(process.env.POSTING_FEE ?? "0");
+
+let liveChainId;
+try {
+  liveChainId = await publicClient.getChainId();
+} catch (error) {
+  console.error(`cannot reach the RPC at ${rpcUrl}`);
+  console.error(`  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`);
+  console.error("");
+  console.error("Public endpoints go down, rate-limit and get replaced. Point this at");
+  console.error("another one and re-run:");
+  console.error("");
+  console.error("    export RPC_URL=https://…");
+  process.exit(1);
+}
+
+if (liveChainId !== robinhood.id) {
+  console.error(`${rpcUrl} is chain ${liveChainId}, not Robinhood Chain (${robinhood.id})`);
+  console.error("Deploying against the wrong chain would put the board somewhere nobody is looking.");
+  process.exit(1);
+}
+
+console.log(`rpc        ${rpcUrl} (chain ${liveChainId})`);
 
 // Each of these is a contract the factory will call for the life of the board,
 // and a wrong one is not recoverable. An empty address is the easy case; a
