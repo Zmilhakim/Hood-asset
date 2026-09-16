@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { BOARD_IS_OPEN } from "@/lib/contracts";
-import { TICKER } from "@/lib/brand";
+import { HPAD_POOL, HPAD_TOKEN, TICKER } from "@/lib/brand";
+import { explorerAddress } from "@/lib/chain";
 
 export function TickerNotice() {
   return (
     <Panel
       label="The board's own notice"
-      aside={<Badge tone={BOARD_IS_OPEN ? "live" : "idle"}>{BOARD_IS_OPEN ? "Board open" : "Not live yet"}</Badge>}
+      aside={<Badge tone={BOARD_IS_OPEN ? "live" : "idle"}>{BOARD_IS_OPEN ? "Live" : "Not live yet"}</Badge>}
     >
       <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
         <div className="border-2 border-ink bg-ink px-6 py-5 text-center text-paper">
@@ -20,14 +21,32 @@ export function TickerNotice() {
 
         <div>
           <p className="max-w-prose text-sm leading-6 text-ink-soft">
-            {TICKER} goes through Hoodpad like anything else: one billion supply, the whole of it in a pool nobody can
-            unlock, nothing held back for whoever built it. It is not live yet. When it is, it will show up on the
-            board as a notice you can read for yourself — which is the only reason to believe any of the above.
+            {TICKER} went through Hoodpad like anything else: one billion supply, the whole of it in a pool nobody can
+            unlock, nothing held back for whoever built it. It is on the board as a notice you can read for yourself —
+            which is the only reason to believe any of the above.
           </p>
+          <dl className="mt-4 grid gap-1 font-mono text-xs text-ink-soft">
+            <div className="flex flex-wrap gap-x-2">
+              <dt className="text-ink-soft/60">token</dt>
+              <dd className="break-all">{HPAD_TOKEN}</dd>
+            </div>
+            <div className="flex flex-wrap gap-x-2">
+              <dt className="text-ink-soft/60">pool</dt>
+              <dd className="break-all">{HPAD_POOL}</dd>
+            </div>
+          </dl>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <Link href="/board" className={buttonClasses("quiet")}>
-              Watch the board
+              Read the notice
             </Link>
+            <a
+              href={explorerAddress(HPAD_TOKEN)}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonClasses("quiet")}
+            >
+              Token contract ↗
+            </a>
           </div>
         </div>
       </div>
