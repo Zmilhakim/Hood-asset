@@ -8,7 +8,7 @@ Foundry, no network access needed.
 | ------------- | -------------------------------------------------------------------------- |
 | `CrateToken`  | Fixed-supply ERC20. No mint, no owner, no pause.                            |
 | `CratePacker` | Packs the crate, once: mints the supply, opens the pool, seals the liquidity. |
-| `CrateSeal`   | Owns the liquidity forever. Fees go back into it; nothing comes out.        |
+| `CrateSeal`   | Owns the liquidity forever. Pays the trading fees to one fixed address.      |
 
 ```bash
 npm install
@@ -53,25 +53,39 @@ it is zero or positive.
 its key — so it is fixed at launch. No code runs on swaps, there is nowhere to
 put an upgrade, and no fee can be switched on later.
 
-## The seal, precisely
+## Two promises, and they are not the same one
 
-`CrateSeal` has no function that removes liquidity, transfers anything, approves
-an operator, or names a recipient. Its `take` always names itself and its
-`settle` always pays the pool manager; neither is a parameter a caller can set.
+**The liquidity never comes out.** Everything anyone pays to buy CRATE, minus the
+fee, becomes liquidity, and liquidity leaves a v4 pool through exactly one door:
+a `modifyLiquidity` with a negative delta. There is no such call in `CrateSeal`.
+Every liquidity delta in the file is zero or positive. Not the treasury, not the
+packer, not the seal on anyone's behalf can shrink the position — and because a
+v4 position is a row in the pool manager rather than an NFT, there is nothing to
+transfer, sell, borrow against or approve away either.
 
-So value can enter the crate and cannot leave it. `compound` is the only thing
-that moves it once inside: it settles the fees the position has earned and puts
-them straight back in as liquidity. Anyone may pay the gas — it takes no
-arguments and pays its caller nothing — so there is no privileged party here at
-all, not even the address that packed it.
+**The trading fees do come out, to one address.** `collectFees` pays them to
+`feeBeneficiary`, which is set in the seal's constructor as an `immutable`. There
+is no setter, under any spelling. Where the fees go was decided before the token
+existed and cannot be moved afterwards. The call is permissionless, because
+permission would change nothing: the destination is fixed, so all a caller can do
+is pay the gas.
 
-**Fees are not income. They cannot leave.** One honest detail about where they
-sit: a position can only take the two currencies together at the pool's current
-ratio, so when one side of the pool has earned much more than the other — after a
-run of buys and no sells, say — `compound` can only put part of it back, and the
-rest waits in the seal. `compound` reverts with `NothingToAdd` when none of it
-can be paired yet. Either way the fees are inside the crate: the seal's balance
-is as unreachable as the position is.
+What that earns, precisely: on a 1% pool, **one ETH of buying pays the treasury
+0.01 ETH.** The other 0.99 becomes liquidity and is never coming back. This is
+the part worth being clear-eyed about — locked liquidity means the money people
+pay for supply is locked, for you as much as for anyone.
+
+One v4 detail the seal has to handle: *every* `modifyLiquidity` settles the
+position's accrued fees into the caller's delta, whatever the call was for. So an
+add could quietly absorb the fees into the position instead of paying them out.
+`compound` pays the fees out first, in the same transaction, so that can never
+happen — there is a test for exactly this.
+
+**What the seal holds is not fees.** The dust left over from packing, and
+anything anyone sends the contract, can only go one way: into the position, via
+`compound`. It is never paid to the treasury. A position also takes the two
+currencies together at the pool's current ratio, so `compound` reverts with
+`NothingToAdd` when the balance cannot be paired yet, and it waits.
 
 ## The two keys
 
@@ -87,18 +101,21 @@ stranded, and a new one has to be deployed. After the crate is packed the accoun
 holds no power over the token, the pool or the seal. Fund it with a little ETH
 for two transactions.
 
-**Treasury.** Worth being blunt about: **CRATE has no treasury.** No contract
-here pays an address, no supply is set aside, and there is no owner or fee to
-change that later. Trading fees stay in the crate. So the treasury key is a plain
-holding address for whatever you fund yourself, kept separate from the key that
-signs deploys — and since it is meant to hold rather than spend, a hardware
-wallet is the better answer if you have one.
+**Treasury.** Receives the pool's trading fees, forever. It is written into the
+seal as an `immutable` at deployment and nothing changes it afterwards, so a typo
+is a typo forever — `deploy.mjs` reads the address back off the chain after
+deploying and refuses to go on if it is not the one you passed. It never signs
+anything, so it should not be a hot key at all: use a hardware wallet address
+here and skip the generated key.
+
+No supply is set aside for it, and no contract pays it anything but fees.
 
 Before either key signs anything, check you stored the right thing:
 
 ```bash
 DEPLOYER_KEY=0x… npm run whoami                  # prints the address, never the key
-PACKER=0x… DEPLOYER_KEY=0x… npm run whoami       # …and whether that crate answers to it
+PACKER=0x… DEPLOYER_KEY=0x… npm run whoami       # …whether that crate answers to it,
+                                                 #    and where its fees are committed
 ```
 
 ## Pricing the launch
@@ -129,8 +146,8 @@ with an explanation if your range no longer fits under it.
 ## Testing against the real thing
 
 `test/contracts.test.mjs` deploys Uniswap's `PoolManager` — the shipped contract,
-not a model of it — packs the crate into it, buys with ETH, sells back, and then
-compounds. So the flash accounting, the tick crossing and the fee growth are
+not a model of it — packs the crate into it, buys with ETH, sells back, collects
+the fees and compounds. So the flash accounting, the tick crossing and the fee growth are
 Uniswap's own. `test/ticks.test.mjs` checks the off-chain price math against the
 constants Uniswap publishes, and one test checks that the pool id and price
 `lib/pool.mjs` derives off-chain are the ones the manager actually has.

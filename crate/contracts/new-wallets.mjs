@@ -27,17 +27,19 @@ const WALLETS = {
     ],
   },
   treasury: {
-    title: "TREASURY — holds project funds. The contracts do not know it exists",
+    title: "TREASURY — receives the pool's trading fees, forever",
     notes: [
-      "Read that again, because it is the opposite of how most launches work:",
-      "CRATE has no treasury, no fee and no owner. Nothing in CratePacker,",
-      "CrateSeal or CrateToken ever pays this address, and no supply is set",
-      "aside for it. Trading fees stay in the crate.",
+      "This address is written into CrateSeal as an immutable at deployment.",
+      "No function anywhere changes it. A typo is a typo forever, and every fee",
+      "the crate ever earns goes to whatever address it is.",
       "",
-      "So this is a plain holding address — for whatever you fund yourself, and",
-      "for keeping that separate from the key that signs deploys. Because it",
-      "is meant to hold value rather than spend it, a hardware wallet is the",
-      "better answer here; use this generated key only if you have not got one.",
+      "What it earns is the fee and only the fee: on a 1% pool, one ETH of",
+      "buying pays it 0.01 ETH. The other 0.99 becomes liquidity, and liquidity",
+      "never comes back out — not to this address, not to anyone.",
+      "",
+      "It never signs anything, so it should not be a hot key at all. Use a",
+      "hardware wallet address here and skip the key below; generate one only",
+      "if you have not got one yet.",
     ],
   },
 };
@@ -118,5 +120,8 @@ console.log("");
 console.log("  4. Fund the deployer with ETH on Robinhood Chain, then:");
 console.log("");
 console.log("       export DEPLOYER_KEY=0x…   # in your own shell, not in a file");
-console.log("       POOL_MANAGER=0x… npm run deploy");
+console.log("       POOL_MANAGER=0x… TREASURY=0x… npm run deploy");
+console.log("");
+console.log("  Check the treasury address twice before that command. It is the one");
+console.log("  thing here that cannot be corrected afterwards.");
 console.log("");

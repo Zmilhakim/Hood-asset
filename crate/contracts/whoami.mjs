@@ -21,25 +21,35 @@ const { isAddress } = await import("viem");
 if (!isAddress(process.env.PACKER)) fail(`PACKER is not an address: ${process.env.PACKER}`);
 
 const { publicClient } = await connect();
-const abi = [
-  { type: "function", name: "packer", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
-  { type: "function", name: "packed", inputs: [], outputs: [{ type: "bool" }], stateMutability: "view" },
+const view = (name, type) => [
+  { type: "function", name, inputs: [], outputs: [{ type }], stateMutability: "view" },
 ];
 
 let owner;
 let packed;
+let seal;
 try {
-  [owner, packed] = await Promise.all([
-    publicClient.readContract({ address: process.env.PACKER, abi, functionName: "packer" }),
-    publicClient.readContract({ address: process.env.PACKER, abi, functionName: "packed" }),
+  [owner, packed, seal] = await Promise.all([
+    publicClient.readContract({ address: process.env.PACKER, abi: view("packer", "address"), functionName: "packer" }),
+    publicClient.readContract({ address: process.env.PACKER, abi: view("packed", "bool"), functionName: "packed" }),
+    publicClient.readContract({ address: process.env.PACKER, abi: view("seal", "address"), functionName: "seal" }),
   ]);
 } catch {
   fail(`PACKER (${process.env.PACKER}) does not answer like a CratePacker — check the address`);
 }
 
+// The address the fees are already committed to. Worth reading back even when
+// nothing is wrong, because after `pack` it is far too late to look.
+const treasury = await publicClient.readContract({
+  address: seal,
+  abi: view("feeBeneficiary", "address"),
+  functionName: "feeBeneficiary",
+});
+
 const mine = owner.toLowerCase() === account.address.toLowerCase();
 console.log(`packer     ${process.env.PACKER} answers to ${owner}`);
 console.log(`match      ${mine ? "yes — this key can pack the crate" : "NO — this key cannot pack that crate"}`);
 console.log(`state      ${packed ? "already packed" : "not packed yet"}`);
+console.log(`treasury   ${treasury} — fees go here, and this cannot be changed`);
 
 if (!mine) process.exit(1);

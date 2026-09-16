@@ -15,23 +15,32 @@ import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.so
 import {LiquidityAmounts} from "@uniswap/v4-periphery/src/libraries/LiquidityAmounts.sol";
 
 /// @title CrateSeal
-/// @notice The crate. It owns the one liquidity position $CRATE ever had, and
-/// there is no way to take anything out of it.
+/// @notice The crate. It owns the one liquidity position $CRATE ever had.
 ///
-/// Uniswap v4 makes that claim simpler than v3 could. A v4 position is not an
-/// NFT; it is a row in the pool manager keyed by the address that added it. This
-/// contract is that address, so the position is not a thing anyone can be given,
-/// sold, borrowed against or mistakenly approved away. It can only be reduced by
-/// this contract calling `modifyLiquidity` with a negative delta, and this
-/// contract never does. Search the file: the only liquidity deltas here are zero
-/// and positive.
+/// The liquidity can never come out. The fees it earns can, and they go to one
+/// address, fixed when this contract was deployed. Those are two different
+/// promises and it is worth keeping them apart:
 ///
-/// The rest of the surface is just as narrow. `take` always names this contract
-/// as the recipient, `settle` always pays the pool manager, and nothing else
-/// moves a balance. So the crate is one-way: fees earned by the sealed liquidity
-/// are put back into the sealed liquidity. Anyone may pay the gas to do it —
-/// `compound` takes no arguments and pays its caller nothing, so there is no
-/// privileged party here at all, not even the address that packed it.
+///   The principal — everything anyone ever paid to buy CRATE, minus the fee —
+///   is liquidity, and liquidity only leaves a v4 pool through a negative
+///   `modifyLiquidity`. There is no such call in this file. Search it: every
+///   liquidity delta here is zero or positive. Not the beneficiary, not the
+///   packer, not this contract on anyone's behalf can shrink the position.
+///
+///   The fees are a separate ledger, and `collectFees` pays them to
+///   `feeBeneficiary`. That address is immutable and there is no function that
+///   changes it, so where the fees go was decided once, before the token
+///   existed, and is as fixed as the rest.
+///
+/// Uniswap v4 makes the first promise simpler than v3 could. A v4 position is
+/// not an NFT; it is a row in the pool manager keyed by the address that added
+/// it. This contract is that address, so the position is not a thing anyone can
+/// be given, sold, borrowed against or mistakenly approved away.
+///
+/// Everything else this contract holds — the dust left over from packing, and
+/// anything anyone sends it — can only go one way: into the position. `compound`
+/// is the only thing that moves it, and the position is the only place it can
+/// go. That balance is not fees and is never paid to the beneficiary.
 contract CrateSeal is IUnlockCallback {
     using StateLibrary for IPoolManager;
 
@@ -40,6 +49,7 @@ contract CrateSeal is IUnlockCallback {
 
     enum Action {
         Seal,
+        Collect,
         Compound
     }
 
@@ -49,6 +59,10 @@ contract CrateSeal is IUnlockCallback {
     /// crate once, in the packing transaction; afterwards `sealIn` reverts for
     /// everyone, it included.
     address public immutable packer;
+
+    /// @notice Where trading fees go. Set once, at deployment, and there is no
+    /// function anywhere that changes it.
+    address public immutable feeBeneficiary;
 
     /// @notice True once the liquidity is in. It never goes back to false.
     bool public isSealed;
@@ -63,18 +77,24 @@ contract CrateSeal is IUnlockCallback {
     error NotPoolManager();
     error NotSealed();
     error NothingToAdd();
+    error NothingToCollect();
+    error ZeroBeneficiary();
 
     event Sealed(PoolId indexed poolId, int24 tickLower, int24 tickUpper, uint128 liquidity);
+    event FeesCollected(address indexed beneficiary, uint256 amount0, uint256 amount1);
     event Compounded(PoolId indexed poolId, uint128 liquidityAdded, uint256 amount0, uint256 amount1);
 
-    constructor(IPoolManager poolManager_) {
+    constructor(IPoolManager poolManager_, address feeBeneficiary_) {
+        if (feeBeneficiary_ == address(0)) revert ZeroBeneficiary();
+
         poolManager = poolManager_;
+        feeBeneficiary = feeBeneficiary_;
         packer = msg.sender;
     }
 
-    /// @notice Native ETH taken back out of the pool manager lands here, and so
-    /// does anything anyone chooses to send. Either way it is inside the crate:
-    /// the next `compound` puts it into the position, and nothing else can.
+    /// @notice Anything sent here is inside the crate: the next `compound` puts
+    /// it into the position, and nothing else can move it. This is not how the
+    /// beneficiary is paid — fees never pass through this balance.
     receive() external payable {}
 
     // ----------------------------------------------------------------- packing
@@ -94,12 +114,25 @@ contract CrateSeal is IUnlockCallback {
         emit Sealed(key_.toId(), tickLower_, tickUpper_, liquidity);
     }
 
+    // -------------------------------------------------------------------- fees
+
+    /// @notice Pay the position's accrued trading fees to the beneficiary.
+    ///
+    /// Permissionless, because permission would not change anything: the
+    /// destination is immutable, so whoever calls this, the money goes to the
+    /// same address. All a caller can do is pay the gas.
+    function collectFees() external returns (uint256 amount0, uint256 amount1) {
+        if (!isSealed) revert NotSealed();
+
+        (amount0, amount1) = abi.decode(poolManager.unlock(abi.encode(Action.Collect)), (uint256, uint256));
+        if (amount0 == 0 && amount1 == 0) revert NothingToCollect();
+    }
+
     // ------------------------------------------------------------- compounding
 
-    /// @notice Sweep the trading fees the sealed liquidity has earned and put
-    /// them straight back into it. Permissionless: the caller spends gas and
-    /// receives nothing, and no path through this function can move value to any
-    /// address other than the position itself.
+    /// @notice Put whatever this contract is holding into the position. That is
+    /// the dust left from packing and anything anyone has sent since — not fees,
+    /// which go to the beneficiary and never land in this balance.
     ///
     /// @dev A position sitting entirely on one side of spot only absorbs one of
     /// the two currencies, so the other waits here until the range is crossed
@@ -115,19 +148,29 @@ contract CrateSeal is IUnlockCallback {
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
 
-        bool compounding = abi.decode(data, (Action)) == Action.Compound;
-        if (compounding) _collectFees();
+        Action action = abi.decode(data, (Action));
+
+        if (action == Action.Collect) {
+            (uint256 fee0, uint256 fee1) = _payFees();
+            return abi.encode(fee0, fee1);
+        }
+
+        // Every `modifyLiquidity` settles the position's fees into the caller's
+        // delta, whatever the delta was for. So the fees are paid out first, and
+        // the add below is left with nothing but principal to account for — a
+        // fee can never be quietly swallowed into the position.
+        if (action == Action.Compound) _payFees();
 
         (uint128 liquidity, uint256 amount0, uint256 amount1) = _addEverythingHeld();
-        if (compounding) emit Compounded(_key.toId(), liquidity, amount0, amount1);
+        if (action == Action.Compound) emit Compounded(_key.toId(), liquidity, amount0, amount1);
 
         return abi.encode(liquidity);
     }
 
     /// @dev Modifying a position by zero settles the fees it has accrued and
-    /// nothing else — there is no separate collect in v4. The credit is taken to
-    /// this contract so the add below can spend it.
-    function _collectFees() private {
+    /// nothing else — there is no separate collect in v4. They are taken
+    /// straight to the beneficiary, so they never touch this contract's balance.
+    function _payFees() private returns (uint256 amount0, uint256 amount1) {
         (BalanceDelta fees,) = poolManager.modifyLiquidity(
             _key,
             ModifyLiquidityParams({
@@ -139,18 +182,22 @@ contract CrateSeal is IUnlockCallback {
             ""
         );
 
-        if (fees.amount0() > 0) poolManager.take(_key.currency0, address(this), uint128(fees.amount0()));
-        if (fees.amount1() > 0) poolManager.take(_key.currency1, address(this), uint128(fees.amount1()));
+        amount0 = fees.amount0() > 0 ? uint256(uint128(fees.amount0())) : 0;
+        amount1 = fees.amount1() > 0 ? uint256(uint128(fees.amount1())) : 0;
+
+        if (amount0 > 0) poolManager.take(_key.currency0, feeBeneficiary, amount0);
+        if (amount1 > 0) poolManager.take(_key.currency1, feeBeneficiary, amount1);
+
+        if (amount0 > 0 || amount1 > 0) emit FeesCollected(feeBeneficiary, amount0, amount1);
     }
 
     /// @dev Turns everything this contract holds into liquidity in the one
-    /// position. The amounts are read as balances rather than passed in, so
-    /// there is no argument a caller could use to aim this somewhere else.
+    /// position. The amounts are read as balances rather than passed in, so there
+    /// is no argument a caller could use to aim this somewhere else.
     function _addEverythingHeld() private returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
         PoolKey memory key = _key;
-        PoolId poolId = key.toId();
 
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
 
         amount0 = key.currency0.balanceOfSelf();
         amount1 = key.currency1.balanceOfSelf();
@@ -179,9 +226,9 @@ contract CrateSeal is IUnlockCallback {
         _settle(key.currency1, delta.amount1());
     }
 
-    /// @dev Pays what the add cost, or takes back what it did not use. The
-    /// recipient of a `take` is this contract and the recipient of a `settle` is
-    /// the pool manager; neither is a parameter anyone can set.
+    /// @dev Pays what the add cost, or takes back what it did not use. A `take`
+    /// here names this contract and a `settle` pays the pool manager; neither is
+    /// a parameter anyone can set, and neither can reach the beneficiary.
     function _settle(Currency currency, int128 delta) private {
         if (delta == 0) return;
 

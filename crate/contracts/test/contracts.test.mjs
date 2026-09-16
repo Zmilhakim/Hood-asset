@@ -46,6 +46,7 @@ const NATIVE = "0x0000000000000000000000000000000000000000";
 const PACKER = new Address(hexToBytes("0x00000000000000000000000000000000000000f0"));
 const STRANGER = new Address(hexToBytes("0x00000000000000000000000000000000000000f1"));
 const TRADER = new Address(hexToBytes("0x00000000000000000000000000000000000000f2"));
+const TREASURY = new Address(hexToBytes("0x00000000000000000000000000000000000000f3"));
 
 const address = (account) => getAddress(account.toString());
 
@@ -69,7 +70,7 @@ async function fresh() {
   // transient storage, so anything older cannot run it at all.
   const evm = await createEVM({ common: new Common({ chain: Mainnet, hardfork: Hardfork.Cancun }) });
 
-  for (const account of [PACKER, STRANGER, TRADER]) {
+  for (const account of [PACKER, STRANGER, TRADER, TREASURY]) {
     await evm.stateManager.putAccount(account, createAccount({ nonce: 0n, balance: 1000n * 10n ** 18n }));
   }
 
@@ -104,7 +105,13 @@ async function fresh() {
 
   const balanceOf = async (who) => (await evm.stateManager.getAccount(new Address(hexToBytes(who))))?.balance ?? 0n;
 
-  return { evm, deploy, call, read, balanceOf };
+  /// A bare ETH transfer, which is how anything reaches a contract's `receive`.
+  const send = async (to, value, caller = TRADER) => {
+    const result = await evm.runCall({ caller, to: new Address(hexToBytes(to)), data: new Uint8Array(), gasLimit: GAS, value });
+    return { reverted: result.execResult.exceptionError !== undefined };
+  };
+
+  return { evm, deploy, call, read, balanceOf, send };
 }
 
 /** A pool manager, an unpacked crate, and something that can trade against it. */
@@ -112,7 +119,7 @@ async function venue() {
   const ctx = await fresh();
 
   const manager = await ctx.deploy(managerArtifact, "address", [address(PACKER)]);
-  const packer = await ctx.deploy(packerArtifact, "address", [manager]);
+  const packer = await ctx.deploy(packerArtifact, "address, address", [manager, address(TREASURY)]);
   const router = await ctx.deploy(routerArtifact, "address", [manager]);
   const seal = await ctx.read(packer, packerArtifact.abi, "seal");
 
@@ -263,7 +270,7 @@ test("buying walks the price down into the range and hands out real supply", asy
   assert.equal(await ctx.balanceOf(ctx.seal), 0n, "the seal should not be paid, ever");
 });
 
-test("fees earned by the crate go back into the crate, and nowhere else", async () => {
+test("trading fees are paid to the treasury, and the liquidity is not touched", async () => {
   const ctx = await venue();
   const { token } = await pack(ctx);
   const key = await ctx.read(ctx.packer, packerArtifact.abi, "poolKey");
@@ -273,28 +280,104 @@ test("fees earned by the crate go back into the crate, and nowhere else", async 
   const bought = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]);
   assert.equal((await sell(ctx, key, token, bought / 2n)).reverted, false);
 
-  const before = await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity");
+  const liquidityBefore = await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity");
+  const treasuryEthBefore = await ctx.balanceOf(address(TREASURY));
+  // The seal is holding the dust left from packing, and that is not a fee.
+  const sealCrateBefore = await ctx.read(token, tokenArtifact.abi, "balanceOf", [ctx.seal]);
 
-  // Permissionless: a stranger pays the gas and gets nothing for it.
-  const strangerEthBefore = await ctx.balanceOf(address(STRANGER));
+  // Permissionless, because permission would change nothing: the destination is
+  // immutable, so a stranger calling it still pays the treasury.
+  const collected = await ctx.call(ctx.seal, sealArtifact.abi, "collectFees", [], { caller: STRANGER });
+  assert.equal(collected.reverted, false, "collectFees reverted");
+
+  const treasuryEth = (await ctx.balanceOf(address(TREASURY))) - treasuryEthBefore;
+  const treasuryCrate = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TREASURY)]);
+  assert.ok(treasuryEth > 0n, "the treasury got no ETH fee");
+  assert.ok(treasuryCrate > 0n, "the treasury got no CRATE fee");
+
+  // A 1% pool on a 0.1 ETH buy is a 0.001 ETH fee. Within rounding, that is what
+  // arrived — the treasury earns the fee, not the money people paid for supply.
+  assert.ok(treasuryEth <= 10n ** 15n, `the treasury took ${treasuryEth} wei, more than the fee on the trade`);
+
+  // The caller is out of pocket by the gas and up by nothing.
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(STRANGER)]), 0n);
+
+  // Fees are a separate ledger: paying them out leaves the position alone.
+  assert.equal(await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity"), liquidityBefore);
+
+  // And they never pass through the seal on the way: it holds exactly what it
+  // held before, which is the packing dust and nothing else.
+  assert.equal(await ctx.balanceOf(ctx.seal), 0n, "ETH fees went through the seal");
+  assert.equal(
+    await ctx.read(token, tokenArtifact.abi, "balanceOf", [ctx.seal]),
+    sealCrateBefore,
+    "CRATE fees went through the seal",
+  );
+
+  // Nothing new earned, nothing to collect.
+  const again = await ctx.call(ctx.seal, sealArtifact.abi, "collectFees", [], { caller: STRANGER });
+  assert.equal(again.reverted, true, "collecting twice over should find nothing");
+});
+
+test("compound pays the fees out first, so none is swallowed into the position", async () => {
+  const ctx = await venue();
+  const { token } = await pack(ctx);
+  const key = await ctx.read(ctx.packer, packerArtifact.abi, "poolKey");
+
+  assert.equal((await buy(ctx, key, 10n ** 17n)).reverted, false);
+  const bought = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]);
+  assert.equal((await sell(ctx, key, token, bought / 2n)).reverted, false);
+
+  // Somebody sends the crate a gift. That is not a fee, and it can only go one
+  // way: into the position.
+  const gift = 10n ** 16n;
+  assert.equal((await ctx.send(ctx.seal, gift)).reverted, false, "the seal would not take ETH");
+  const giftCrate = bought / 4n;
+  assert.equal(
+    (await ctx.call(token, tokenArtifact.abi, "transfer", [ctx.seal, giftCrate], { caller: TRADER })).reverted,
+    false,
+  );
+
+  const liquidityBefore = await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity");
+  const treasuryEthBefore = await ctx.balanceOf(address(TREASURY));
+
   const compounded = await ctx.call(ctx.seal, sealArtifact.abi, "compound", [], { caller: STRANGER });
   assert.equal(compounded.reverted, false, "compound reverted");
 
-  const after = await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity");
-  assert.ok(after > before, `liquidity did not grow: ${before} -> ${after}`);
+  // In v4 every modifyLiquidity settles the position's fees into the caller's
+  // delta, so an add could quietly absorb them. It did not: they were paid out
+  // in the same transaction.
+  assert.ok((await ctx.balanceOf(address(TREASURY))) > treasuryEthBefore, "the fee was swallowed by the add");
+  assert.ok((await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TREASURY)])) > 0n);
 
-  // The caller is out of pocket by the gas and up by nothing.
-  assert.ok((await ctx.balanceOf(address(STRANGER))) <= strangerEthBefore);
-  assert.equal(await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(STRANGER)]), 0n);
+  // And the gift is now liquidity nobody can withdraw.
+  assert.ok((await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity")) > liquidityBefore, "the gift did not go in");
+});
 
-  // Here the ETH side earned far more than the CRATE side, and a position in
-  // range can only take the two together. So most of the ETH fee could not be
-  // paired, and it is still in the seal — which is the only place it can be.
-  assert.ok((await ctx.balanceOf(ctx.seal)) > 0n, "the unpaired fee left the seal");
+test("the treasury is fixed at deployment and cannot be pointed anywhere else", async () => {
+  const ctx = await venue();
+  await pack(ctx);
 
-  // With nothing new earned, there is nothing to do.
-  const again = await ctx.call(ctx.seal, sealArtifact.abi, "compound", [], { caller: STRANGER });
-  assert.equal(again.reverted, true, "compounding twice over should find nothing to add");
+  assert.equal(await ctx.read(ctx.seal, sealArtifact.abi, "feeBeneficiary"), address(TREASURY));
+
+  // No setter, under any spelling.
+  const setters = sealArtifact.abi
+    .filter((f) => f.type === "function")
+    .map((f) => f.name)
+    .filter((name) => /^set|beneficiary/i.test(name) && name !== "feeBeneficiary");
+  assert.deepEqual(setters, [], "the beneficiary can be moved");
+
+  // Being the beneficiary buys nothing beyond the fees: the liquidity is as far
+  // out of its reach as anyone else's.
+  const liquidity = await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity");
+  for (const caller of [TREASURY, PACKER, STRANGER]) {
+    assert.equal((await ctx.call(ctx.seal, sealArtifact.abi, "sealIn", [
+      await ctx.read(ctx.packer, packerArtifact.abi, "poolKey"),
+      RANGE.tickLower,
+      RANGE.tickUpper,
+    ], { caller })).reverted, true);
+  }
+  assert.equal(await ctx.read(ctx.seal, sealArtifact.abi, "sealedLiquidity"), liquidity);
 });
 
 test("a pool somebody else opened first is used at the price it already has", async () => {
@@ -382,13 +465,19 @@ test("only the pool manager can drive the seal's callback", async () => {
   }
 });
 
-test("the seal has no way out, and the packer has no way back in", () => {
+test("the liquidity has no way out, and the packer has no way back in", () => {
   const sealFunctions = sealArtifact.abi.filter((f) => f.type === "function").map((f) => f.name);
 
+  // `collectFees` is the one function that pays anything outward, and it pays a
+  // fixed address. Everything on this list would be a second one.
   const escapes = sealFunctions.filter((name) =>
-    /remove|decrease|withdraw|rescue|sweep|recover|transfer|approve|burn|renounce|owner|donate|modify/i.test(name),
+    /remove|decrease|withdraw|rescue|sweep|recover|transfer|approve|burn|renounce|owner|donate|modify|unwind|exit|claim/i
+      .test(name),
   );
-  assert.deepEqual(escapes, [], "an exit appeared on the seal");
+  assert.deepEqual(escapes, [], "a second way out appeared on the seal");
+
+  // Which leaves exactly the surface the design describes, and nothing else.
+  assert.deepEqual(sealFunctions.filter((n) => /fee/i.test(n)).sort(), ["collectFees", "feeBeneficiary"]);
 
   // In v4 a position is not a token, so there is nothing to receive or send on.
   assert.equal(JSON.stringify(sealArtifact.abi).match(/721|6909/i), null, "a transferable position appeared");
@@ -419,13 +508,21 @@ test("CrateToken mints its supply once and can only ever shrink", async () => {
   assert.equal(await ctx.read(token, tokenArtifact.abi, "totalSupply"), SUPPLY / 2n);
 });
 
-test("the packer refuses a pool manager that is not there", async () => {
+test("the packer refuses a venue or a treasury that is not there", async () => {
   const ctx = await fresh();
+  const manager = await ctx.deploy(managerArtifact, "address", [address(PACKER)]);
 
-  const data = concatHex([
-    `0x${packerArtifact.evm.bytecode.object}`,
-    encodeAbiParameters(parseAbiParameters("address"), ["0x0000000000000000000000000000000000000000"]),
-  ]);
-  const result = await ctx.evm.runCall({ caller: PACKER, to: undefined, data: hexToBytes(data), gasLimit: GAS });
-  assert.notEqual(result.execResult.exceptionError, undefined, "a zero pool manager should revert the deploy");
+  // A zero treasury would burn every fee the crate ever earns, so it is refused
+  // at the same door as a zero pool manager.
+  for (const args of [
+    ["0x0000000000000000000000000000000000000000", address(TREASURY)],
+    [manager, "0x0000000000000000000000000000000000000000"],
+  ]) {
+    const data = concatHex([
+      `0x${packerArtifact.evm.bytecode.object}`,
+      encodeAbiParameters(parseAbiParameters("address, address"), args),
+    ]);
+    const result = await ctx.evm.runCall({ caller: PACKER, to: undefined, data: hexToBytes(data), gasLimit: GAS });
+    assert.notEqual(result.execResult.exceptionError, undefined, `${JSON.stringify(args)} should revert the deploy`);
+  }
 });

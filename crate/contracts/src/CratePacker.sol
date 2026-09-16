@@ -24,9 +24,13 @@ import {CrateToken} from "./CrateToken.sol";
 ///   3. tell the seal to put all of it in, which it can only do once.
 ///
 /// Afterwards `packed` is true and every entrypoint here is either a view or
-/// reverts. There is no second token, no owner function, no treasury and no fee.
-/// The address that packed it holds nothing, because the supply never passed
-/// through this contract either: it was minted to the seal.
+/// reverts. There is no second token and no owner function. The address that
+/// packed it holds nothing, because the supply never passed through this
+/// contract either: it was minted to the seal.
+///
+/// Nothing is held back for anyone. The whole supply goes into the pool, and the
+/// only thing the project ever earns is the pool's trading fee, which the seal
+/// pays to an address fixed before the token existed.
 ///
 /// Two things v4 gives this design that v3 could not:
 ///
@@ -81,12 +85,16 @@ contract CratePacker {
 
     event Packed(address indexed token, PoolId indexed poolId, uint128 liquidity);
 
-    constructor(IPoolManager poolManager_) {
+    /// @param poolManager_ The Uniswap v4 PoolManager to launch into.
+    /// @param feeBeneficiary_ Where the position's trading fees go, forever. The
+    /// seal stores it as an immutable and nothing can change it afterwards —
+    /// including this contract, which keeps no reference to it at all.
+    constructor(IPoolManager poolManager_, address feeBeneficiary_) {
         if (address(poolManager_) == address(0)) revert ZeroAddress();
 
         poolManager = poolManager_;
         packer = msg.sender;
-        seal = new CrateSeal(poolManager_);
+        seal = new CrateSeal(poolManager_, feeBeneficiary_);
     }
 
     /// @notice Mint the supply, open the pool, and seal the liquidity. Reverts on

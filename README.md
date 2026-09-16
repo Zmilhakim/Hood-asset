@@ -30,9 +30,10 @@ not.
 
 A separate project, and the opposite shape: Hoodpad is a board anyone can post
 to, CRATE is one token that is launched once. The supply opens a single Uniswap
-v4 position against native ETH, owned by a contract with no way to give it back,
-so trading fees cannot be paid to anyone — the only thing that can be done with
-them is to put them back into the same position. See
+v4 position against native ETH, owned by a contract with no way to give it back.
+The guarantee is the same one Hoodpad makes — trading fees are claimable, the
+liquidity never is — but here it is settled at deployment rather than per notice:
+the fee address is an immutable with no setter. See
 [`crate/README.md`](crate/README.md).
 
 Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
