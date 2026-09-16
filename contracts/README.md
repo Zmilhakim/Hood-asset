@@ -12,9 +12,38 @@ no Foundry, no network access needed.
 ```bash
 npm install
 npm run compile   # writes out/ and regenerates the app's ABIs
-npm test          # compiles first, then runs the invariants
+npm test          # compiles first, then runs the invariants and a full launch
 npm run deploy    # see deploy.mjs for the env vars it needs
 ```
+
+## Tests
+
+`test/contracts.test.mjs` checks the rules Hoodpad enforces on its own, against
+stubbed venue addresses — address prediction, the fixed supply, the locker's
+refusals, the absence of an NFT surface.
+
+`test/launch.test.mjs` runs the launch itself. `test/venue.mjs` boots a local
+EVM carrying a real WETH9, the published `UniswapV3Factory`, and the published
+`NonfungiblePositionManager` — their shipped artifacts, not mocks — and puts
+Hoodpad on top. A launch there mints, opens a pool and locks the position the
+same way it would on Robinhood Chain, so the test can assert the things only a
+working venue can settle:
+
+- the token lands on the address `predictToken` promised;
+- the pool holds the entire supply, and the factory, the locker and the poster
+  hold none of it;
+- the LP position exists, carries liquidity, sits on the planned ticks, and is
+  owned by the locker;
+- the pool opened at the price the launch asked for;
+- `planLaunch` — the tick maths the web app ships, imported straight out of
+  `hoodpad/src/lib/pool.ts` — produces a range the contract accepts on both
+  pool orderings, and a range that straddles spot is refused instead of
+  half-funded.
+
+The suite asserts the pool init code hash the position manager has baked in
+still matches the pool artifact. If a future version of those packages ships a
+recompiled pool, every mint in the test would be aimed at an address that does
+not exist, and the test would quietly stop proving anything.
 
 ## What one launch does
 
@@ -142,6 +171,8 @@ upgrade, or touch a locked position — the factory has no owner at all. Only
 
 - No audit. These contracts have not been reviewed by anyone.
 - No upgrade path, by design. A deployed board is the board.
-- No testnet rehearsal in this repo. Robinhood Chain has a public testnet
-  (chain id 46630); deploying there first costs nothing and is the only way to
-  see a real launch go through before real money is involved.
+- No rehearsal on a real chain. `test/launch.test.mjs` runs a full launch
+  against real Uniswap bytecode, but in a local EVM with no other traders, no
+  gas market and no one else's pools. Robinhood Chain has a public testnet
+  (chain id 46630); deploying there costs nothing and is the only way to watch
+  a launch go through under real conditions before real money is involved.
