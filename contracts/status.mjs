@@ -178,18 +178,16 @@ for (const id of ids) {
   const ethPerToken = token0.toLowerCase() === notice.token.toLowerCase() ? ratio : 1 / ratio;
   const supply = Number(formatUnits(totalSupply, 18));
 
-  const remaining = Number(formatUnits(inPool, 18));
-  const share = supply > 0 ? (remaining / supply) * 100 : 0;
-
-  console.log(`    pool     ${notice.pool}`);
-  console.log(`    price    ${ethPerToken.toExponential(4)} ETH per token`);
-  console.log(`    mcap     ${num(ethPerToken * supply, 4)} ETH`);
-  console.log(`    unsold   ${num(remaining)} of ${num(supply)} (${share.toFixed(2)}%)`);
-  console.log(`    taken in ${formatEther(wethInPool)} WETH`);
-
-  // The beneficiary is the only address allowed to collect, so the simulation
-  // has to come from them. It is a call, not a transaction — nothing moves.
+  // Uncollected fees sit in the pool's own balance until someone collects them,
+  // so they have to come out before the balance means "still buyable". Reading
+  // them first is what stops this from reporting an untouched pool and a pile
+  // of fees in the same breath.
+  //
+  // Only the beneficiary may collect, so the simulation is sent as them. It is
+  // a call, not a transaction — nothing moves.
   const beneficiary = watch ?? notice.poster;
+  let tokenFees = null;
+  let ethFees = null;
   try {
     const { result } = await client.simulateContract({
       address: locker,
@@ -199,18 +197,41 @@ for (const id of ids) {
       account: beneficiary,
     });
 
-    const [amount0, amount1] = result;
-    const [tokenFees, ethFees] =
-      token0.toLowerCase() === notice.token.toLowerCase() ? [amount0, amount1] : [amount1, amount0];
-
-    const idle = tokenFees === 0n && ethFees === 0n;
-    console.log(
-      `    fees     ${idle ? "nothing yet" : `${formatEther(ethFees)} WETH + ${num(formatUnits(tokenFees, 18))} ${notice.symbol}`}` +
-        (idle ? "" : `  ->  claim at hoodpad.site/dashboard as ${short(beneficiary)}`),
-    );
+    [tokenFees, ethFees] =
+      token0.toLowerCase() === notice.token.toLowerCase() ? [result[0], result[1]] : [result[1], result[0]];
   } catch {
-    // Not the beneficiary, or the position is not this locker's. Either way the
-    // figure is not this address's to read.
+    // Not the beneficiary, or not this locker's position. Either way the figure
+    // is not this address's to read, and the reserves below stay gross.
+  }
+
+  const liquidToken = inPool - (tokenFees ?? 0n);
+  const liquidWeth = wethInPool - (ethFees ?? 0n);
+
+  const remaining = Number(formatUnits(liquidToken, 18));
+  const share = supply > 0 ? (remaining / supply) * 100 : 0;
+
+  // What is actually out in the world, which is not the same as what has left
+  // the liquidity: tokens taken as fees have left the liquidity but nobody
+  // holds them, and a buy that was sold straight back leaves nothing behind.
+  const held = Number(formatUnits(totalSupply - inPool, 18));
+
+  console.log(`    pool     ${notice.pool}`);
+  console.log(`    price    ${ethPerToken.toExponential(4)} ETH per token`);
+  console.log(`    mcap     ${num(ethPerToken * supply, 4)} ETH`);
+  console.log(
+    `    buyable  ${num(remaining)} ${notice.symbol} (${share.toFixed(4)}%) + ${formatEther(liquidWeth)} WETH` +
+      (tokenFees === null ? "  — fees not readable here, so this is gross" : ""),
+  );
+  console.log(`    held     ${held > 0 ? `${num(held)} ${notice.symbol} outside the pool` : "nothing outside the pool"}`);
+
+  if (tokenFees === null) {
     console.log(`    fees     not readable as ${short(beneficiary)} — only the poster can`);
+  } else if (tokenFees === 0n && ethFees === 0n) {
+    console.log("    fees     nothing yet");
+  } else {
+    console.log(
+      `    fees     ${formatEther(ethFees)} WETH + ${num(formatUnits(tokenFees, 18))} ${notice.symbol} unclaimed` +
+        `  ->  claim at hoodpad.site/dashboard as ${short(beneficiary)}`,
+    );
   }
 }
