@@ -3,13 +3,18 @@ import { positionLockerAbi } from "./abi/positionLocker";
 
 export { hoodpadFactoryAbi, positionLockerAbi };
 
-const configured = process.env.NEXT_PUBLIC_FACTORY_ADDRESS?.trim();
-
 /**
- * The board contract. Undefined until Hoodpad is actually deployed — the site
- * reads that as "the board has not opened yet" and says so, rather than
- * rendering figures it cannot back up.
+ * The board contract, live on Robinhood Chain since 2026-09-16.
+ *
+ * Kept in the repo rather than only in a dashboard environment variable: the
+ * address is public, the factory is ownerless and immutable, and a build should
+ * not depend on config that can go missing. NEXT_PUBLIC_FACTORY_ADDRESS still
+ * overrides it, which is how a testnet or a fork gets pointed at its own board.
  */
+const DEPLOYED_FACTORY = "0xC935a139AbB08a2eF8480d8E793CCD5c68a7c739";
+
+const configured = process.env.NEXT_PUBLIC_FACTORY_ADDRESS?.trim() || DEPLOYED_FACTORY;
+
 export const FACTORY_ADDRESS =
   configured && /^0x[0-9a-fA-F]{40}$/.test(configured) ? (configured as `0x${string}`) : undefined;
 

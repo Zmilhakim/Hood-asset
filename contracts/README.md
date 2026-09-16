@@ -41,6 +41,26 @@ against a CREATE2 address recomputed independently from the standalone artifact
 — if solc ever embedded different creation code inside the factory, that test
 fails rather than every launch.
 
+## Live deployment
+
+Robinhood Chain (4663), deployed 2026-09-16.
+
+| | |
+| --- | --- |
+| HoodpadFactory | `0xC935a139AbB08a2eF8480d8E793CCD5c68a7c739` |
+| Deploy tx | `0xe5dadf6796010c78ab9ca293b0e1378cbdf7e15f5f0d22a4008829d7ba1bde51` |
+| Deployer | `0xA5E1d280EF25B5CD0768deBBaEa2Ee9e0ae56E81` (no privilege after deployment) |
+| Treasury | `0xdB7bdDBAEc91679BF4abbaf5BA11EF4E028c73A3` (immutable) |
+| Posting fee | 0 — posting is free, so the treasury receives nothing |
+
+`PositionLocker` was deployed by the factory's constructor; read its address
+from `locker()` on the factory rather than trusting a copy of it here.
+
+The pre-flight checks passed against the live chain: the position manager
+named the same factory that was passed in, and the 1% tier reported tick
+spacing 200. The Uniswap addresses below are therefore confirmed, not just
+sourced.
+
 ## Deploying
 
 ### The venue
