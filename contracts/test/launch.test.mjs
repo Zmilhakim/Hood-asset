@@ -318,4 +318,15 @@ test("a buy moves the price and the fee reaches the poster", async () => {
     wethFees <= tier && tier - wethFees <= 10n,
     `the fee should be 1% of ${spend} give or take rounding, got ${wethFees}`,
   );
+
+  // Collecting is the one thing that may leave the locker, and it must not take
+  // the position with it.
+  assert.equal(
+    await venue.read(venue.positionManager, POSITION_MANAGER.abi, "ownerOf", [positionId]),
+    venue.locker,
+    "collecting fees moved the position",
+  );
+
+  const position = await venue.read(venue.positionManager, POSITION_MANAGER.abi, "positions", [positionId]);
+  assert.ok(position[7] > 0n, "collecting fees drained the liquidity");
 });

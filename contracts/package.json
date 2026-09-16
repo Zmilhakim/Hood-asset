@@ -10,6 +10,7 @@
     "deploy": "node deploy.mjs",
     "launch": "node launch.mjs",
     "status": "node status.mjs",
+    "collect": "node collect.mjs",
     "node": "node tools/local-node.mjs",
     "wallet": "node new-wallet.mjs"
   },

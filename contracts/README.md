@@ -16,6 +16,7 @@ npm test          # compiles first, then runs the invariants and a full launch
 npm run deploy    # see deploy.mjs for the env vars it needs
 npm run launch    # post one token through a deployed board
 npm run status    # read the board: prices, supply left, unclaimed fees
+npm run collect   # sweep a locked position's trading fees to its poster
 npm run node      # a local chain to rehearse against
 ```
 
@@ -63,6 +64,26 @@ Unclaimed fees are read by simulating the collect the beneficiary would send,
 not by reading `tokensOwed` off the position. Those two disagree: `tokensOwed`
 only updates when the position is touched, so a pool that has been trading
 quietly reports zero until someone pokes it.
+
+## Collecting fees
+
+The dashboard on the site does this, but it needs a browser with an injected
+wallet — which on a phone means opening the site inside a wallet's own browser.
+`collect.mjs` needs a terminal and the key that is already in it.
+
+```bash
+export DEPLOYER_KEY=0x…     # the poster's account; nobody else may collect
+
+node collect.mjs 1          # show what notice #1 would pay out, send nothing
+node collect.mjs 1 --go     # collect it
+```
+
+It refuses early and says why when the key belongs to someone other than the
+poster, rather than letting the locker's revert explain it. Collecting never
+touches the position: the liquidity stays locked, and the test suite checks
+that the locker still owns it afterwards.
+
+WETH comes back wrapped. Unwrap it in a wallet if plain ETH is wanted.
 
 ### Rehearsing without a chain
 
