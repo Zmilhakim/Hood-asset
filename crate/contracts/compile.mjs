@@ -1,0 +1,90 @@
+// Compiles the crate contracts with solc-js. The test mocks are compiled from
+// the same input as the contracts they stand in for, so a change to an
+// interface breaks the build rather than the test.
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const solc = require("solc");
+
+const here = dirname(fileURLToPath(import.meta.url));
+const srcDir = join(here, "src");
+const mockDir = join(here, "test", "mocks");
+const outDir = join(here, "out");
+
+function collectSources(dir, prefix = "") {
+  const sources = {};
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) Object.assign(sources, collectSources(join(dir, entry.name), rel));
+    else if (entry.name.endsWith(".sol")) sources[rel] = { content: readFileSync(join(dir, entry.name), "utf8") };
+  }
+  return sources;
+}
+
+function findImports(path) {
+  try {
+    if (path.startsWith("@")) return { contents: readFileSync(require.resolve(path, { paths: [here] }), "utf8") };
+    return { contents: readFileSync(join(srcDir, path), "utf8") };
+  } catch (error) {
+    return { error: `not found: ${path} (${error.message})` };
+  }
+}
+
+const sources = collectSources(srcDir);
+// Keyed under mocks/ so their `../interfaces/…` imports resolve to the very
+// same source entries the contracts use.
+if (existsSync(mockDir)) Object.assign(sources, collectSources(mockDir, "mocks"));
+
+const input = {
+  language: "Solidity",
+  sources,
+  settings: {
+    optimizer: { enabled: true, runs: 200 },
+    evmVersion: "cancun",
+    outputSelection: { "*": { "*": ["abi", "evm.bytecode.object", "evm.deployedBytecode.object"] } },
+  },
+};
+
+const output = JSON.parse(solc.compile(JSON.stringify(input), { import: findImports }));
+
+const diagnostics = output.errors ?? [];
+for (const d of diagnostics) console.error(d.formattedMessage.trimEnd());
+if (diagnostics.some((d) => d.severity === "error")) {
+  console.error("\ncompile failed");
+  process.exit(1);
+}
+
+mkdirSync(outDir, { recursive: true });
+
+const DEPLOYED = {
+  "CratePacker.sol": "CratePacker",
+  "CrateSeal.sol": "CrateSeal",
+  "CrateToken.sol": "CrateToken",
+};
+
+const MOCKS = {
+  "mocks/MockVenue.sol": ["MockERC20", "MockDexFactory", "MockPositionManager", "MockPool"],
+};
+
+const limit = 24576; // EIP-170 deployed-bytecode ceiling
+
+for (const [file, name] of Object.entries(DEPLOYED)) {
+  const artifact = output.contracts[file][name];
+  writeFileSync(join(outDir, `${name}.json`), JSON.stringify(artifact, null, 2));
+
+  const size = artifact.evm.deployedBytecode.object.length / 2;
+  const status = size > limit ? "OVER EIP-170 LIMIT" : "ok";
+  console.log(`${name.padEnd(20)} ${String(size).padStart(6)} bytes deployed  ${status}`);
+  if (size > limit) process.exitCode = 1;
+}
+
+for (const [file, names] of Object.entries(MOCKS)) {
+  for (const name of names) {
+    writeFileSync(join(outDir, `${name}.json`), JSON.stringify(output.contracts[file][name], null, 2));
+  }
+}
+
+console.log(`\nartifacts written to ${outDir}`);
