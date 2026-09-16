@@ -9,7 +9,9 @@
     "pretest": "node compile.mjs",
     "test": "node --test test/*.test.mjs",
     "deploy": "node deploy.mjs",
-    "pack": "node pack.mjs"
+    "pack": "node pack.mjs",
+    "wallets": "node new-wallets.mjs",
+    "whoami": "node whoami.mjs"
   },
   "license": "MIT",
   "dependencies": {

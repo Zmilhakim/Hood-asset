@@ -14,6 +14,8 @@ Foundry, no network access needed.
 npm install
 npm run compile   # writes out/, PoolManager included
 npm test          # compiles, then packs a crate and trades against it
+npm run wallets   # makes the two keys — on your machine, not a server
+npm run whoami    # which address does the key I stored control?
 npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 ```
@@ -70,6 +72,34 @@ run of buys and no sells, say — `compound` can only put part of it back, and t
 rest waits in the seal. `compound` reverts with `NothingToAdd` when none of it
 can be paired yet. Either way the fees are inside the crate: the seal's balance
 is as unreachable as the position is.
+
+## The two keys
+
+`npm run wallets` makes them, printed once and saved nowhere. It refuses to run
+if stdout is not a terminal, and refuses again if the environment looks like CI
+or a hosted workspace — a key is only secret while it has existed in exactly one
+place, and a cloud shell is not that place.
+
+**Deployer.** Deploys the packer and is recorded on it as `packer`. It is the
+only address `pack` will take orders from, so it matters between `npm run deploy`
+and `npm run pack` and only then: lose it in that window and the packer is
+stranded, and a new one has to be deployed. After the crate is packed the account
+holds no power over the token, the pool or the seal. Fund it with a little ETH
+for two transactions.
+
+**Treasury.** Worth being blunt about: **CRATE has no treasury.** No contract
+here pays an address, no supply is set aside, and there is no owner or fee to
+change that later. Trading fees stay in the crate. So the treasury key is a plain
+holding address for whatever you fund yourself, kept separate from the key that
+signs deploys — and since it is meant to hold rather than spend, a hardware
+wallet is the better answer if you have one.
+
+Before either key signs anything, check you stored the right thing:
+
+```bash
+DEPLOYER_KEY=0x… npm run whoami                  # prints the address, never the key
+PACKER=0x… DEPLOYER_KEY=0x… npm run whoami       # …and whether that crate answers to it
+```
 
 ## Pricing the launch
 
