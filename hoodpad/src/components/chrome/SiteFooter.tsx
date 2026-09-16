@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ROBINHOOD_CHAIN_ID } from "@/lib/chain";
+import { X_HANDLE, X_URL } from "@/lib/brand";
 
 export function SiteFooter() {
   return (
@@ -24,6 +25,14 @@ export function SiteFooter() {
           <Link href="/dashboard" className="hover:text-flame">
             Your notices
           </Link>
+          <a
+            href={X_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-semibold text-paper/80 hover:text-flame"
+          >
+            {X_HANDLE} ↗
+          </a>
         </nav>
       </div>
     </footer>
