@@ -14,7 +14,49 @@ npm install
 npm run compile   # writes out/ and regenerates the app's ABIs
 npm test          # compiles first, then runs the invariants and a full launch
 npm run deploy    # see deploy.mjs for the env vars it needs
+npm run launch    # post one token through a deployed board
+npm run node      # a local chain to rehearse against
 ```
+
+## Launching a token
+
+`launch.mjs` posts a token through a deployed board from the command line. It
+does what the form on hoodpad.site does — same factory, same tick maths,
+imported from the web app rather than copied — and simulates the whole
+transaction against live state before anything is spent.
+
+```bash
+export DEPLOYER_KEY=0x…          # the account that posts and pays gas
+export NAME="Test Hood"
+export SYMBOL=TESTHOOD
+
+node launch.mjs                  # simulate, print the address, spend nothing
+node launch.mjs --go             # actually post it
+```
+
+`OPENING` and `CEILING` set the market cap in ETH at the two ends of the range
+(1 and 100 by default). `IMAGE`, `BLURB` and `LINK` fill in the notice.
+`FACTORY` and `RPC_URL` both default to the live deployment.
+
+Without `--go` nothing is sent: the script prints the address the token will
+land on, the range, and what the gas will cost, then stops. The salt is
+regenerated on every run, so the address changes between a rehearsal and the
+real thing.
+
+### Rehearsing without a chain
+
+`tools/local-node.mjs` serves the test venue over JSON-RPC, so the launch
+script can be run against something that answers like a chain:
+
+```bash
+npm run node                     # prints the board address it just deployed
+DEPLOYER_KEY=0x…  RPC_URL=http://127.0.0.1:8545  FACTORY=0x…  \
+  NAME="Test Hood" SYMBOL=TESTHOOD node launch.mjs --go
+```
+
+It is not a chain — one transaction per block, no mempool, no other traders,
+and every account it is asked about gets funded. It exists so the script's own
+plumbing is exercised by running it rather than assumed to work.
 
 ## Tests
 

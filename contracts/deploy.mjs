@@ -16,7 +16,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createPublicClient, createWalletClient, defineChain, http, isAddress, formatEther } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+
+import { accountFromEnv } from "./lib/key.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const artifact = JSON.parse(readFileSync(join(here, "out", "HoodpadFactory.json"), "utf8"));
@@ -48,44 +49,8 @@ const robinhood = defineChain({
   rpcUrls: { default: { http: [rpcUrl] } },
 });
 
-// Validate the key's shape before handing it to the crypto library, which
-// fails with a stack trace that says nothing useful. Nothing below ever
-// prints the key itself — only its length and shape.
-const rawKey = process.env.DEPLOYER_KEY.trim();
+const account = accountFromEnv("DEPLOYER_KEY");
 
-if (rawKey.includes(" ")) {
-  console.error("DEPLOYER_KEY contains spaces — that looks like a seed phrase, not a private key.");
-  console.error("");
-  console.error("A seed phrase is 12 or 24 words. A private key is a single 66-character");
-  console.error("string starting with 0x. In MetaMask they are different exports:");
-  console.error("  seed phrase -> Settings > Security & Privacy > Reveal Secret Recovery Phrase");
-  console.error("  private key -> the three dots next to the account > Account details > Show private key");
-  process.exit(1);
-}
-
-if (rawKey === "0x…" || rawKey === "0x..." || rawKey === "") {
-  console.error("DEPLOYER_KEY is still the placeholder from the instructions.");
-  console.error("Replace 0x… with the actual key before exporting it.");
-  process.exit(1);
-}
-
-if (!rawKey.startsWith("0x")) {
-  console.error(`DEPLOYER_KEY is missing its 0x prefix (it is ${rawKey.length} characters).`);
-  console.error("Export it as 0x followed by the 64 hex characters.");
-  process.exit(1);
-}
-
-if (!/^0x[0-9a-fA-F]{64}$/.test(rawKey)) {
-  console.error(`DEPLOYER_KEY is ${rawKey.length} characters; a private key is exactly 66 (0x + 64 hex).`);
-  if (rawKey.length !== 66) {
-    console.error("A truncated paste is the usual cause — check nothing was cut off at either end.");
-  } else {
-    console.error("It is the right length but contains a character that is not 0-9 or a-f.");
-  }
-  process.exit(1);
-}
-
-const account = privateKeyToAccount(rawKey);
 const publicClient = createPublicClient({ chain: robinhood, transport: http() });
 const wallet = createWalletClient({ account, chain: robinhood, transport: http() });
 

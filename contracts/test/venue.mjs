@@ -87,8 +87,10 @@ function explainRevert(returnData) {
   }
 }
 
-export async function bootVenue({ postingFee = 0n, treasury = TREASURY, funding = 10n ** 20n } = {}) {
-  const evm = await createEVM();
+export async function bootVenue({ postingFee = 0n, treasury = TREASURY, funding = 10n ** 20n, evm: existing } = {}) {
+  // An EVM can be passed in so the same state can be driven from somewhere else
+  // as well — the local JSON-RPC node in tools/ runs transactions against it.
+  const evm = existing ?? (await createEVM());
 
   for (const account of [POSTER, STRANGER]) {
     await evm.stateManager.putAccount(account, new Account(0n, funding));
