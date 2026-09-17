@@ -1,30 +1,38 @@
-import type { Metadata } from "next";
-import { IBM_Plex_Mono, Oswald } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Big_Shoulders_Stencil, Courier_Prime } from "next/font/google";
 import { Providers } from "@/providers";
 import { SITE_URL } from "@/lib/site";
-import { TICKER } from "@/lib/addresses";
 import "./globals.css";
 
-const oswald = Oswald({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-oswald" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono-stack" });
+const stencil = Big_Shoulders_Stencil({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  variable: "--font-stencil-stack",
+});
+const type = Courier_Prime({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-type-stack" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: `${TICKER} — one crate on Robinhood Chain`,
+  title: "The dock, $CRATE",
   description:
-    "Packed once, sealed once. The whole supply opens one Uniswap v4 pool against native ETH, and the liquidity can never be withdrawn.",
+    "One crate on Robinhood Chain. Packed once, sealed once. Every figure on the dock is read from the chain.",
   openGraph: {
-    title: `${TICKER} — one crate on Robinhood Chain`,
-    description: "Packed once, sealed once. Nobody opens it.",
+    title: "The dock, $CRATE",
+    description: "One crate on Robinhood Chain. Packed once, sealed once. Nobody opens it.",
     url: SITE_URL,
-    siteName: TICKER,
+    siteName: "$CRATE",
+    type: "website",
   },
-  twitter: { card: "summary_large_image", site: "@cratecoinxyz" },
+  twitter: { card: "summary", site: "@cratecoinxyz" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#D6B078",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${oswald.variable} ${mono.variable}`}>
+    <html lang="en" className={`${stencil.variable} ${type.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

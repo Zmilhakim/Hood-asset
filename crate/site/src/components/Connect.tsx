@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useConnect, useConnection, useDisconnect, useSwitchChain } from "wagmi";
-import { Button } from "@/components/ui/Button";
 import { ROBINHOOD_CHAIN_ID } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
 
@@ -21,9 +20,9 @@ export function Connect() {
 
   if (!mounted) {
     return (
-      <Button tone="quiet" disabled>
+      <button className="btn plain" disabled>
         Connect
-      </Button>
+      </button>
     );
   }
 
@@ -31,29 +30,33 @@ export function Connect() {
     const available = injected && (injected.type !== "injected" || "ethereum" in window);
     if (!available) {
       return (
-        <Button tone="quiet" disabled title="Any browser wallet works. Install one to buy.">
+        <button className="btn plain" disabled title="Any browser wallet works. Install one to buy.">
           No wallet
-        </Button>
+        </button>
       );
     }
     return (
-      <Button tone="quiet" onClick={() => connect({ connector: injected })} disabled={status === "pending"}>
-        {status === "pending" ? "Connecting…" : "Connect"}
-      </Button>
+      <button
+        className="btn plain"
+        onClick={() => connect({ connector: injected })}
+        disabled={status === "pending"}
+      >
+        {status === "pending" ? "Connecting" : "Connect"}
+      </button>
     );
   }
 
   if (chainId !== ROBINHOOD_CHAIN_ID) {
     return (
-      <Button tone="seal" onClick={() => switchChain({ chainId: ROBINHOOD_CHAIN_ID })} disabled={isSwitching}>
-        {isSwitching ? "Switching…" : "Wrong chain"}
-      </Button>
+      <button className="btn" onClick={() => switchChain({ chainId: ROBINHOOD_CHAIN_ID })} disabled={isSwitching}>
+        {isSwitching ? "Switching" : "Wrong chain"}
+      </button>
     );
   }
 
   return (
-    <Button tone="quiet" onClick={() => disconnect()} title="Disconnect">
+    <button className="btn plain" onClick={() => disconnect()} title="Disconnect">
       {shortAddress(address)}
-    </Button>
+    </button>
   );
 }

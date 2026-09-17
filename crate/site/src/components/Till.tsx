@@ -9,7 +9,6 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { Button } from "@/components/ui/Button";
 import { ROUTER_ADDRESS, TICKER, TOKEN_ADDRESS, V4_QUOTER } from "@/lib/addresses";
 import { ROBINHOOD_CHAIN_ID, explorerTx } from "@/lib/chain";
 import { applySlippage, formatAmount, formatEthAmount, parseAmount } from "@/lib/format";
@@ -21,7 +20,8 @@ const DEADLINE_MINUTES = 20;
 
 type Mode = "buy" | "sell";
 
-export function Swap() {
+/** The till on the dock: where ETH is handed over and CRATE is handed back. */
+export function Till() {
   const { address, chainId, isConnected } = useConnection();
   const [mode, setMode] = useState<Mode>("buy");
   const [input, setInput] = useState("");
@@ -47,9 +47,9 @@ export function Swap() {
   const balance = buying ? (ethBalance.data?.value ?? 0n) : ((crateBalance.data as bigint | undefined) ?? 0n);
   const overBalance = hasAmount && amountIn > balance;
 
-  // The quote comes from Uniswap's own V4Quoter rather than from arithmetic
-  // here. It is not a view function, but eth_call runs it happily, and it walks
-  // the same tick math the swap will.
+  // The quote comes from Uniswap's own V4Quoter rather than arithmetic here. It
+  // is not a view function, but eth_call runs it happily, and it walks the same
+  // tick math the swap will.
   const quote = useSimulateContract({
     address: V4_QUOTER,
     abi: quoterAbi,
@@ -119,66 +119,68 @@ export function Swap() {
 
   const label = (() => {
     if (!isConnected) return "Connect a wallet";
-    if (wrongChain) return "Switch to Robinhood Chain";
+    if (wrongChain) return "Wrong chain";
     if (!hasAmount) return "Enter an amount";
     if (overBalance) return `Not enough ${buying ? "ETH" : TICKER}`;
-    if (busy) return receipt.isLoading ? "Confirming…" : "Check your wallet…";
+    if (busy) return receipt.isLoading ? "Confirming" : "Check wallet";
     if (needsApproval) return `Approve ${TICKER}`;
-    if (quote.isLoading) return "Pricing…";
+    if (quote.isLoading) return "Pricing";
     if (amountOut === 0n) return "No price";
     return buying ? `Buy ${TICKER}` : `Sell ${TICKER}`;
   })();
 
-  const blocked = !isConnected || wrongChain || !hasAmount || overBalance || busy || (!needsApproval && amountOut === 0n);
+  const blocked =
+    !isConnected || wrongChain || !hasAmount || overBalance || busy || (!needsApproval && amountOut === 0n);
 
   return (
-    <div className="board overflow-hidden">
-      <div className="grid grid-cols-2 border-b border-[var(--line-strong)]">
+    <div className="till">
+      <div className="till-head" role="tablist" aria-label="Buy or sell">
         {(["buy", "sell"] as const).map((option) => (
           <button
             key={option}
+            role="tab"
+            aria-selected={mode === option}
             onClick={() => {
               setMode(option);
               setInput("");
             }}
-            className={`stencil py-3 text-sm transition ${
-              mode === option ? "bg-[var(--paper-deep)] text-ink" : "text-ink-soft hover:text-ink"
-            }`}
           >
             {option}
           </button>
         ))}
       </div>
 
-      <div className="space-y-4 p-5 sm:p-6">
-        <label className="block">
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="stencil text-[11px] text-ink-soft">You pay</span>
+      <div className="till-body">
+        <div>
+          <div className="field-head">
+            <span className="lbl">You pay</span>
             <button
               type="button"
               onClick={() => setInput(buying ? formatEthAmount(balance) : formatAmount(balance))}
-              className="numeric text-[11px] text-ink-soft underline-offset-2 hover:underline"
+              className="maxbtn"
             >
               {buying ? formatEthAmount(balance) : formatAmount(balance)} {buying ? "ETH" : TICKER}
             </button>
           </div>
-          <div className="flex items-center gap-3 rounded-[3px] border border-[var(--line-strong)] bg-[var(--paper-deep)] px-4 py-3">
+          <label className="field">
             <input
               type="text"
               inputMode="decimal"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="0"
-              className="w-full bg-transparent text-2xl outline-none placeholder:text-ink-soft/50"
+              aria-label={`Amount of ${buying ? "ETH" : TICKER} to pay`}
             />
-            <span className="stencil shrink-0 text-sm text-ink-soft">{buying ? "ETH" : TICKER}</span>
-          </div>
-        </label>
+            <span className="unit">{buying ? "ETH" : TICKER}</span>
+          </label>
+        </div>
 
         <div>
-          <div className="mb-2 stencil text-[11px] text-ink-soft">You receive</div>
-          <div className="flex items-center gap-3 rounded-[3px] border border-dashed border-[var(--line-strong)] px-4 py-3">
-            <span className="numeric w-full truncate text-2xl">
+          <div className="lbl" style={{ marginBottom: 6 }}>
+            You receive
+          </div>
+          <div className="field ghost">
+            <span style={{ fontWeight: 700, fontSize: 24, overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
               {quote.isLoading && hasAmount
                 ? "…"
                 : amountOut === 0n
@@ -187,23 +189,15 @@ export function Swap() {
                     ? formatAmount(amountOut)
                     : formatEthAmount(amountOut)}
             </span>
-            <span className="stencil shrink-0 text-sm text-ink-soft">{buying ? TICKER : "ETH"}</span>
+            <span className="unit">{buying ? TICKER : "ETH"}</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <span className="stencil text-[11px] text-ink-soft">Max slippage</span>
-          <div className="flex gap-1">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span className="lbl">Max slippage</span>
+          <div style={{ display: "flex", gap: 6 }}>
             {SLIPPAGE_CHOICES.map((choice) => (
-              <button
-                key={choice}
-                onClick={() => setSlippage(choice)}
-                className={`numeric rounded-[3px] border px-2.5 py-1 text-xs transition ${
-                  slippage === choice
-                    ? "border-[var(--seal)] text-[var(--seal)]"
-                    : "border-[var(--line)] text-ink-soft hover:text-ink"
-                }`}
-              >
+              <button key={choice} className="chip" aria-pressed={slippage === choice} onClick={() => setSlippage(choice)}>
                 {choice}%
               </button>
             ))}
@@ -211,30 +205,47 @@ export function Swap() {
         </div>
 
         {amountOut > 0n && (
-          <p className="numeric text-xs text-ink-soft">
+          <p className="till-note">
             At worst you get {buying ? formatAmount(minimumOut) : formatEthAmount(minimumOut)}{" "}
             {buying ? TICKER : "ETH"}. Below that, or after {DEADLINE_MINUTES} minutes, the trade reverts instead.
           </p>
         )}
 
-        <Button tone="seal" className="w-full" onClick={submit} disabled={blocked}>
+        <button className="btn" style={{ width: "100%" }} onClick={submit} disabled={blocked}>
           {label}
-        </Button>
+        </button>
 
         {writeError && (
-          <p className="text-xs text-[var(--seal)]">
+          <p style={{ fontSize: 14, color: "var(--red-deep)" }}>
             {(writeError as { shortMessage?: string }).shortMessage ?? "The wallet rejected that."}
           </p>
         )}
 
         {hash && (
-          <p className="numeric text-xs text-ink-soft">
+          <p style={{ fontSize: 14 }}>
             {receipt.isSuccess ? "Done. " : "Sent. "}
-            <a href={explorerTx(hash)} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-              View transaction ↗
+            <a href={explorerTx(hash)} target="_blank" rel="noreferrer">
+              View transaction
             </a>
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** What stands in the till's place before there is anything to sell. */
+export function TillClosed() {
+  return (
+    <div className="till">
+      <div style={{ padding: "28px 22px", textAlign: "center" }}>
+        <p className="stencil" style={{ fontSize: 30, marginBottom: 10 }}>
+          Till closed
+        </p>
+        <p style={{ fontSize: 15.5, color: "var(--ink-soft)" }}>
+          The crate has not been sealed, so there is nothing to buy and no price to quote. This page will not
+          pretend otherwise — the moment the pool exists it reads it straight from the chain.
+        </p>
       </div>
     </div>
   );

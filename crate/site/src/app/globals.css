@@ -1,111 +1,665 @@
 @import "tailwindcss";
 
 /*
- * The crate, in colour: kraft board, stencilled ink, one red seal. Everything
- * here is a token so dark mode is a redefinition rather than a second design —
- * the same crate, seen in a darker warehouse.
+ * The dock. Pine boards, steel strapping, manila paperwork and one red seal.
+ *
+ * Adapted from the static page this replaces, so the site people already know
+ * still looks like itself — what changed is underneath: the figures are read
+ * from the pool manager rather than from an indexer, and the buy button is a
+ * swap rather than a link somewhere else.
  */
 :root {
-  --paper: #e9dcc3;
-  --paper-deep: #ddcdad;
-  --card: #f2e8d5;
-  --ink: #1b1512;
-  --ink-soft: #6a5c4d;
-  --wood: #a87c4c;
-  --seal: #a8392b;
-  --line: rgb(27 21 18 / 14%);
-  --line-strong: rgb(27 21 18 / 26%);
-  --shadow: 0 1px 0 rgb(255 255 255 / 45%), 0 10px 30px -18px rgb(27 21 18 / 55%);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #15110e;
-    --paper-deep: #1d1713;
-    --card: #221b15;
-    --ink: #ece0ca;
-    --ink-soft: #9d8c77;
-    --wood: #8a6539;
-    --seal: #c9503f;
-    --line: rgb(236 224 202 / 13%);
-    --line-strong: rgb(236 224 202 / 24%);
-    --shadow: 0 1px 0 rgb(255 255 255 / 5%), 0 10px 30px -18px rgb(0 0 0 / 80%);
-  }
-}
-
-:root[data-theme="dark"] {
-  --paper: #15110e;
-  --paper-deep: #1d1713;
-  --card: #221b15;
-  --ink: #ece0ca;
-  --ink-soft: #9d8c77;
-  --wood: #8a6539;
-  --seal: #c9503f;
-  --line: rgb(236 224 202 / 13%);
-  --line-strong: rgb(236 224 202 / 24%);
-  --shadow: 0 1px 0 rgb(255 255 255 / 5%), 0 10px 30px -18px rgb(0 0 0 / 80%);
+  --pine: #d6b078;
+  --gap: #2b1d10;
+  --ink: #231b13;
+  --ink-soft: #4a3b2a;
+  --red: #b02a1f;
+  --red-deep: #7e1c14;
+  --manila: #efe3bf;
+  --manila-edge: #d8c58f;
+  --rule: #6e5c45;
+  --steel-a: #5e6568;
+  --steel-b: #a7aeb0;
+  --steel-c: #858c8f;
 }
 
 @theme inline {
-  --color-paper: var(--paper);
-  --color-paper-deep: var(--paper-deep);
-  --color-card: var(--card);
+  --color-pine: var(--pine);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-wood: var(--wood);
-  --color-seal: var(--seal);
-  --color-line: var(--line);
-  --font-stencil: var(--font-oswald), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono-stack), ui-monospace, SFMono-Regular, monospace;
+  --color-red: var(--red);
+  --color-manila: var(--manila);
+  --color-manila-edge: var(--manila-edge);
+  --color-rule: var(--rule);
+  --font-stencil: var(--font-stencil-stack), Impact, "Arial Narrow", sans-serif;
+  --font-type: var(--font-type-stack), "Courier New", Courier, monospace;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--paper);
+  font-family: var(--font-type);
   color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  background-color: var(--pine);
+  /* Boards, the gaps between them, and a grain that is noise rather than a
+     picture of wood — it tiles at any size and costs one filter. */
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0 116px, rgb(43 29 16 / 88%) 116px 122px),
+    repeating-linear-gradient(
+      to bottom,
+      rgb(58 36 16 / 24%) 0,
+      rgb(58 36 16 / 0%) 18px,
+      rgb(58 36 16 / 0%) 96px,
+      rgb(58 36 16 / 28%) 116px,
+      rgb(58 36 16 / 0%) 122px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='244'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.002 0.061475' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.70 0 0 0 0 0.52 0 0 0 0 0.31 0 0 0 2.2 -0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
   -webkit-font-smoothing: antialiased;
-  /* Planks. Barely there on purpose: at full strength they read as stray
-     horizontal rules cutting through the text rather than as a crate. */
-  background-image: repeating-linear-gradient(
-    180deg,
-    transparent 0 96px,
-    color-mix(in srgb, var(--ink) 4%, transparent) 96px 97px
-  );
   overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 3px;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Stencilled paint: sprayed through a cut-out, so the edges break up. */
+.paint {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.06' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.55 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.06' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.55 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
 }
 
 .stencil {
   font-family: var(--font-stencil);
+  font-weight: 900;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-stencil);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 20px 8px;
+  border: 3px solid var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--red);
+  color: var(--manila);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.btn.plain {
+  background: var(--manila);
+  color: var(--ink);
+}
+
+.btn:disabled {
+  background: #cdb98a;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+  box-shadow: none;
+  border-style: dashed;
+  transform: none;
+}
+
+/* ------------------------------------------------------------ steel strap */
+
+.strap {
+  background: linear-gradient(to bottom, var(--steel-a), var(--steel-b) 35%, var(--steel-c) 58%, #4f5558);
+  border-top: 2px solid #3e4345;
+  border-bottom: 2px solid #3e4345;
+  color: #15181a;
+}
+
+.strap .wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.buckle {
+  width: 54px;
+  height: 30px;
+  border: 2px solid #3e4345;
+  border-radius: 3px;
+  flex: none;
+  background-image: linear-gradient(#50575a, #50575a), linear-gradient(#50575a, #50575a),
+    linear-gradient(90deg, #6c7376, #b3babc, #6c7376);
+  background-size: 36px 3px, 36px 3px, 100% 100%;
+  background-position: 8px 8px, 8px 17px, 0 0;
+  background-repeat: no-repeat;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6f6a60;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.dot.live {
+  background: #2f7d32;
+  box-shadow: 0 0 0 3px rgb(47 125 50 / 25%);
+}
+
+/* -------------------------------------------------------------- the tag */
+
+.tagwrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.tagwrap::before {
+  content: "";
+  position: absolute;
+  top: -56px;
+  bottom: -72px;
+  left: 50%;
+  width: 44px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--steel-a), var(--steel-b) 35%, var(--steel-c) 55%, #4f5558);
+  border-left: 2px solid #3e4345;
+  border-right: 2px solid #3e4345;
+}
+
+.twine {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4px;
+  height: 52px;
+  background: #8c7350;
+  transform: translateX(-50%) rotate(6deg);
+  z-index: 1;
+}
+
+.tagshadow {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 400px);
+  filter: drop-shadow(8px 12px 10px rgb(42 26 12 / 45%));
+}
+
+.tag {
+  position: relative;
+  width: 100%;
+  transform: rotate(-2.5deg);
+  background: var(--manila);
+  padding: 62px 30px 34px;
+  clip-path: polygon(15% 0, 85% 0, 100% 11%, 100% 100%, 0 100%, 0 11%);
+}
+
+.tag .hole {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border-radius: 50%;
+  background: #d2bf8c;
+  display: grid;
+  place-items: center;
+}
+
+.tag .hole::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gap);
+}
+
+.tag h2 {
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.12em;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 12px;
   text-transform: uppercase;
 }
 
-.numeric {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+.rows {
+  list-style: none;
 }
 
-/* The panel everything sits in: a board with a routed edge. */
-.board {
-  background: var(--card);
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  box-shadow: var(--shadow);
+.rows li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 16px;
 }
 
-/* A wax seal. Small, and the only saturated thing on the page. */
-.seal-dot {
-  background: var(--seal);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 22%, transparent);
+.rows li .k {
+  flex: none;
 }
 
-input[type="text"],
-input[type="number"] {
-  font-family: var(--font-mono);
+.rows li .lead {
+  flex: 1;
+  border-bottom: 2px dotted var(--rule);
+  transform: translateY(-4px);
+  min-width: 16px;
+}
+
+.rows li .v {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tag .note {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--rule);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.stamp {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  transform: rotate(-9deg);
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: 36px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+  border: 5px solid var(--red);
+  border-radius: 5px;
+  padding: 0 12px;
+  line-height: 1.25;
+  opacity: 0.88;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stamp {
+    animation: thud 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.6s both;
+  }
+
+  @keyframes thud {
+    from {
+      opacity: 0;
+      transform: rotate(-9deg) scale(1.9);
+    }
+    to {
+      opacity: 0.88;
+      transform: rotate(-9deg) scale(1);
+    }
+  }
+}
+
+/* ------------------------------------------------------------- paperwork */
+
+.sheet {
+  position: relative;
+  background: var(--manila);
+  margin: 0 auto 56px;
+  padding: 44px 44px 40px;
+  box-shadow: 0 2px 0 var(--manila-edge), 0 14px 26px rgb(42 26 12 / 42%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0.28 0 0 0 0.45 -0.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+.clip {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 34px;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(to bottom, #9aa1a4, #5b6164);
+  border: 2px solid #3e4345;
+}
+
+.clip::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 8px;
+  height: 6px;
+  border-radius: 3px;
+  background: #3e4345;
+}
+
+.sheet h2.title {
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sheet .lede {
+  max-width: 40em;
+  margin: 10px 0 28px;
+  font-size: 17px;
+}
+
+.empty {
+  border: 3px dashed var(--rule);
+  padding: 34px 24px;
+  text-align: center;
+  margin-top: 18px;
+}
+
+.empty b {
+  display: block;
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.empty p {
+  max-width: 34em;
+  margin: 0 auto;
+}
+
+table.log {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15.5px;
+}
+
+.log th {
+  text-align: left;
+  font-weight: 700;
+  padding: 12px 10px 8px;
+  border-bottom: 2px solid var(--ink);
+  white-space: nowrap;
+}
+
+.log td {
+  padding: 11px 10px;
+  border-bottom: 1px dashed var(--rule);
+  white-space: nowrap;
+}
+
+.log td.num,
+.log th.num {
+  text-align: right;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.manifest {
+  list-style: none;
+  margin-top: 8px;
+  columns: 2;
+  column-gap: 48px;
+}
+
+.manifest li {
+  break-inside: avoid;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.manifest .k {
+  flex: none;
+  min-width: 8.5em;
+}
+
+.manifest .v {
+  font-weight: 700;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------ receiving + notes */
+
+.split {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 44px;
+  margin-top: 8px;
+}
+
+ol.steps {
+  list-style: none;
+  counter-reset: s;
+}
+
+ol.steps li {
+  counter-increment: s;
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+ol.steps li::before {
+  content: counter(s);
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: 52px;
+  line-height: 0.8;
+  color: var(--red);
+}
+
+ol.steps h3 {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+
+.notice {
+  border: 3px solid var(--ink);
+  padding: 24px 24px 18px;
+  background: #f5ecd2;
+  align-self: start;
+}
+
+.notice h3 {
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.notice p {
+  margin-bottom: 12px;
+  font-size: 15.5px;
+}
+
+.notes {
+  margin-top: 18px;
+  border-top: 2px solid var(--ink);
+}
+
+.notes details {
+  border-bottom: 1px dashed var(--rule);
+}
+
+.notes summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.notes summary::-webkit-details-marker {
+  display: none;
+}
+
+.notes summary::after {
+  content: "+";
+  font-family: var(--font-stencil);
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 0.8;
+}
+
+.notes details[open] summary::after {
+  content: "–";
+}
+
+.notes details p {
+  max-width: 44em;
+  padding: 0 0 18px;
+}
+
+/* ------------------------------------------------------------- the swap */
+
+.till {
+  border: 3px solid var(--ink);
+  background: var(--manila);
+  box-shadow: 6px 6px 0 rgb(35 27 19 / 35%);
+}
+
+.till-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 3px solid var(--ink);
+}
+
+.till-head button {
+  font-family: var(--font-stencil);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--manila-edge);
+  color: var(--ink-soft);
+  border: 0;
+  padding: 10px 0 8px;
+  cursor: pointer;
+}
+
+.till-head button[aria-selected="true"] {
+  background: var(--manila);
+  color: var(--ink);
+}
+
+.till-head button + button {
+  border-left: 3px solid var(--ink);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 3px solid var(--ink);
+  background: #f5ecd2;
+  padding: 10px 14px;
+}
+
+.field.ghost {
+  border-style: dashed;
+  background: transparent;
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-family: var(--font-type);
+  font-weight: 700;
+  font-size: 24px;
+  color: inherit;
+}
+
+.field input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.5;
+}
+
+.field .unit {
+  font-family: var(--font-stencil);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex: none;
+}
+
+.chip {
+  font-family: var(--font-type);
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--red);
+  color: var(--red);
 }
 
 input::-webkit-outer-spin-button,
@@ -114,11 +668,302 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-a {
-  color: inherit;
+
+/* -------------------------------------------------------------- structure */
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 22px 0 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.brand b {
+  font-size: 40px;
+}
+
+.nav {
+  display: flex;
+  gap: 22px;
+  margin-left: auto;
+  font-weight: 700;
+}
+
+.nav a {
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.nav a:hover {
+  border-color: var(--ink);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  padding: 56px 0 24px;
+}
+
+.hero h1 {
+  font-size: clamp(54px, 8.2vw, 112px);
+  line-height: 0.86;
+  letter-spacing: 0.02em;
+}
+
+.hero h1 span {
+  display: block;
+}
+
+.sub {
+  font-size: 18px;
+  max-width: 33em;
+  margin: 28px 0 22px;
+  font-weight: 700;
+  background: var(--manila);
+  border: 3px solid var(--ink);
+  border-left: 10px solid var(--red);
+  padding: 14px 18px;
+}
+
+.ca {
+  display: flex;
+  align-items: stretch;
+  max-width: 560px;
+  border: 3px solid var(--ink);
+  background: var(--manila);
+  margin-bottom: 22px;
+}
+
+.ca .lab {
+  font-family: var(--font-stencil);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  padding: 10px 12px;
+  border-right: 3px solid var(--ink);
+  background: var(--manila-edge);
+  display: flex;
+  align-items: center;
+}
+
+.ca code {
+  font-size: 15px;
+  padding: 10px 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.ca button {
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  border: 0;
+  border-left: 3px solid var(--ink);
+  background: var(--ink);
+  color: var(--manila);
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.ca button:disabled {
+  background: #8b7a60;
+  cursor: not-allowed;
+}
+
+footer .big {
+  font-size: clamp(46px, 8vw, 110px);
+  line-height: 0.88;
+}
+
+footer .label {
+  display: inline-block;
+  margin-top: 28px;
+  background: var(--manila);
+  border: 3px solid var(--ink);
+  padding: 14px 18px;
+  max-width: 56em;
+}
+
+footer .label .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-weight: 700;
+}
+
+footer .fine {
+  margin-top: 8px;
+  font-size: 14.5px;
+}
+
+.till-body {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.lbl {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.maxbtn {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.till-note {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.till-wrap {
+  max-width: 460px;
+}
+
+.foot-note {
+  font-size: 14.5px;
+  margin-top: 18px;
+  color: var(--ink-soft);
+}
+
+/* A selected tab is the lighter one, which is not obvious on its own — the bar
+   says which side of the till you are standing at. */
+.till-head button[aria-selected="true"] {
+  box-shadow: inset 0 5px 0 var(--red);
+}
+
+/* ----------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 36px 0 20px;
+  }
+
+  .tagwrap::before {
+    top: 0;
+    bottom: -60px;
+  }
+
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .manifest {
+    columns: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+  }
+
+  .wrap {
+    padding: 0 16px;
+  }
+
+  .top {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .top .btn {
+    margin-left: auto;
+    font-size: 18px;
+    padding: 7px 14px 6px;
+  }
+
+  .nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 18px;
+    overflow-x: auto;
+  }
+
+  .brand b {
+    font-size: 34px;
+  }
+
+  .hero h1 {
+    font-size: 13.5vw;
+  }
+
+  .ca code {
+    font-size: 13px;
+  }
+
+  .till-wrap {
+    max-width: none;
+  }
+
+  .sheet {
+    padding: 36px 18px 28px;
+    margin-bottom: 44px;
+  }
+
+  .log .to {
+    display: none;
+  }
+
+  ol.steps li {
+    grid-template-columns: 44px 1fr;
+  }
+
+  ol.steps li::before {
+    font-size: 42px;
+  }
+
+  .stamp {
+    font-size: 28px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .tag {
+    padding: 58px 20px 30px;
+  }
+
+  .rows li {
+    font-size: 15px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

@@ -1,83 +1,259 @@
 import { Connect } from "@/components/Connect";
-import { Manifest, NotLaunched, Price } from "@/components/Manifest";
-import { Swap } from "@/components/Swap";
-import { Panel } from "@/components/ui/Panel";
-import { LAUNCHED, TICKER } from "@/lib/addresses";
+import { DockLog } from "@/components/DockLog";
+import { Strap } from "@/components/Strap";
+import { Tag } from "@/components/Tag";
+import { Till, TillClosed } from "@/components/Till";
+import { Contract } from "@/components/Contract";
+import { LAUNCHED, ROUTER_ADDRESS, SUPPLY, TOKEN_ADDRESS } from "@/lib/addresses";
+import { DEFAULT_EXPLORER_URL } from "@/lib/chain";
 import { X_HANDLE, X_URL } from "@/lib/site";
 
-export default function Home() {
-  return (
-    <div className="mx-auto flex min-h-dvh max-w-5xl flex-col px-4 sm:px-6">
-      <header className="flex items-center justify-between py-6">
-        <div className="flex items-center gap-3">
-          <span className="h-3 w-3 rounded-full seal-dot" aria-hidden />
-          <span className="stencil text-lg tracking-[0.2em]">{TICKER}</span>
-        </div>
-        <Connect />
-      </header>
+const CrateMark = () => (
+  <svg viewBox="0 0 64 64" aria-hidden width="44" height="44" style={{ flex: "none" }}>
+    <path d="M8 8h48v8H8zM8 48h48v8H8zM8 18h8v28H8zM48 18h8v28h-8zM18 43L43 18h3v3L21 46h-3z" fill="#231B13" />
+    <circle cx="32" cy="32" r="9" fill="#B02A1F" />
+    <circle cx="32" cy="32" r="5.5" fill="none" stroke="#C94A3B" strokeWidth="1.5" />
+  </svg>
+);
 
-      <main className="flex-1 pb-16">
-        <section className="py-10 sm:py-14">
-          <h1 className="stencil text-4xl leading-[1.05] sm:text-6xl">
-            One crate on
-            <br />
-            Robinhood Chain
-          </h1>
-          <p className="mt-5 max-w-xl text-base text-ink-soft sm:text-lg">
-            Packed once, sealed once. The whole supply opened a single Uniswap v4 pool against native ETH, and the
-            liquidity that came out of it can never be taken back — not by anyone, including whoever packed it.
+export default function Dock() {
+  return (
+    <>
+      <div className="wrap">
+        <header className="top">
+          <a href="#top" className="brand">
+            <CrateMark />
+            <b className="stencil paint">Crate</b>
+          </a>
+          <nav className="nav" aria-label="Sections">
+            <a href="#log">Dock log</a>
+            <a href="#receiving">Receiving</a>
+            <a href="#notes">Notes</a>
+          </nav>
+          <Connect />
+        </header>
+      </div>
+
+      <Strap />
+
+      <main id="top" className="wrap">
+        <section className="hero">
+          <div>
+            <h1 className="stencil paint">
+              <span>One crate</span>
+              <span>on the dock.</span>
+            </h1>
+            <p className="sub">
+              $CRATE ships on Robinhood Chain. Packed once, sealed once, and nobody opens it. Every figure on this
+              dock is read from the pool itself — not from an indexer, and not typed in by hand.
+            </p>
+            <Contract />
+          </div>
+
+          <Tag />
+        </section>
+
+        <section className="sheet" id="buy" aria-labelledby="buyTitle">
+          <span className="clip" aria-hidden />
+          <h2 className="title" id="buyTitle">
+            The till
+          </h2>
+          <p className="lede">
+            Buy and sell here, against the pool itself. Quotes come from Uniswap&rsquo;s own quoter, and every trade
+            carries a floor and a deadline — under either, it reverts rather than fills.
+          </p>
+          <div className="till-wrap">{LAUNCHED ? <Till /> : <TillClosed />}</div>
+        </section>
+
+        <section className="sheet" id="log" aria-labelledby="logTitle">
+          <span className="clip" aria-hidden />
+          <h2 className="title" id="logTitle">
+            The dock
+          </h2>
+          <p className="lede">
+            Every transfer of $CRATE lands in the log. The manifest lists what the chain says about the crate itself.
+          </p>
+
+          <DockLog />
+
+          <ul className="manifest" style={{ marginTop: 28 }}>
+            <li>
+              <span className="k">Contents</span>
+              <span className="v">{SUPPLY.toLocaleString("en-US")} $CRATE</span>
+            </li>
+            <li>
+              <span className="k">Route</span>
+              <span className="v">Robinhood Chain, ID 4663</span>
+            </li>
+            <li>
+              <span className="k">Paired with</span>
+              <span className="v">Native ETH — no WETH, no hook</span>
+            </li>
+            <li>
+              <span className="k">Contract</span>
+              <span className="v">
+                {TOKEN_ADDRESS ? (
+                  <a href={`${DEFAULT_EXPLORER_URL}/token/${TOKEN_ADDRESS}`} target="_blank" rel="noreferrer">
+                    {TOKEN_ADDRESS}
+                  </a>
+                ) : (
+                  "Posted at launch"
+                )}
+              </span>
+            </li>
+            <li>
+              <span className="k">Router</span>
+              <span className="v">
+                {ROUTER_ADDRESS ? (
+                  <a href={`${DEFAULT_EXPLORER_URL}/address/${ROUTER_ADDRESS}`} target="_blank" rel="noreferrer">
+                    {ROUTER_ADDRESS}
+                  </a>
+                ) : (
+                  "Posted at launch"
+                )}
+              </span>
+            </li>
+            <li>
+              <span className="k">Liquidity</span>
+              <span className="v">Sealed — no contract can withdraw it</span>
+            </li>
+            <li>
+              <span className="k">Trade fee</span>
+              <span className="v">1%, paid to the crate&rsquo;s fee address</span>
+            </li>
+            <li>
+              <span className="k">Opened</span>
+              <span className="v">Never</span>
+            </li>
+          </ul>
+          <p className="foot-note">
+            Price, valuation and the ETH sealed in are read from Uniswap&rsquo;s pool manager. The shipment log comes
+            from Blockscout, the chain&rsquo;s explorer — history, not arithmetic. Nothing here is typed in by hand.
           </p>
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="order-last space-y-5 lg:order-none">
-            {LAUNCHED && <Price />}
-            <Manifest />
-
-            <Panel>
-              <h2 className="stencil mb-3 text-sm">What the seal actually means</h2>
-              <div className="space-y-3 text-sm text-ink-soft">
-                <p>
-                  <span className="text-ink">The liquidity cannot come out.</span> In Uniswap v4 a position is not an
-                  NFT — it is a row in the pool manager belonging to the contract that added it. That contract has no
-                  function that removes liquidity. Every liquidity change in it is zero or positive, so there is
-                  nothing to transfer, sell, borrow against or approve away.
-                </p>
-                <p>
-                  <span className="text-ink">The supply is fixed.</span> A billion {TICKER}, minted once, straight into
-                  the pool. No mint function, no owner, no pause, and nothing held back for a team.
-                </p>
-                <p>
-                  <span className="text-ink">Trading fees go to one address,</span> fixed when the seal was deployed,
-                  with no function anywhere that changes it. That is the project&rsquo;s only income — the money people
-                  pay for supply stays in the pool, permanently.
-                </p>
-              </div>
-            </Panel>
-
-            <Panel>
-              <h2 className="stencil mb-3 text-sm">What this does not promise</h2>
-              <p className="text-sm text-ink-soft">
-                Locked liquidity is not a floor, and none of this makes {TICKER} worth anything. The price is whatever
-                people pay. The contracts are not audited. Buy what you are willing to watch go to zero.
+        <section className="sheet" id="receiving" aria-labelledby="recTitle">
+          <span className="clip" aria-hidden />
+          <h2 className="title" id="recTitle">
+            Receiving
+          </h2>
+          <p className="lede">How to take delivery of $CRATE. Four steps, one wallet.</p>
+          <div className="split">
+            <ol className="steps">
+              <li>
+                <div>
+                  <h3>Get an EVM wallet</h3>
+                  <p>Any wallet that can add a custom network works. Write down the recovery phrase and keep it offline.</p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3>Add Robinhood Chain</h3>
+                  <p>
+                    Chain ID 4663. Add it from{" "}
+                    <a href="https://chainlist.org/chain/4663" target="_blank" rel="noreferrer">
+                      chainlist.org
+                    </a>{" "}
+                    so the network details are filled in for you, or let the button at the top switch it for you.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3>Bring ETH</h3>
+                  <p>Gas on Robinhood Chain is paid in ETH, and so is $CRATE. Bridge a little over before you buy.</p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3>Buy at the till</h3>
+                  <p>
+                    Connect, type an amount, and check the minimum before you sign. Selling asks for an approval
+                    first — for exactly the amount you are selling, not an unlimited one.
+                  </p>
+                </div>
+              </li>
+            </ol>
+            <aside className="notice" aria-labelledby="noticeTitle">
+              <h3 id="noticeTitle">Before you buy</h3>
+              <p>
+                $CRATE is a memecoin. It has no roadmap, no promise and no value beyond what people give it. You can
+                lose everything you put in.
               </p>
-            </Panel>
+              <p>
+                Locked liquidity is not a floor. It means the money paid for supply stays in the pool — it does not
+                mean the price cannot fall.
+              </p>
+              <p>The contracts are not audited. Robinhood Chain is run by Robinhood; $CRATE is not made, checked or backed by them.</p>
+              <p>The only contract address is the one on this page and in the pinned post. Anything else is not the crate.</p>
+            </aside>
           </div>
+        </section>
 
-          {/* First on a phone: somebody who came here to buy should not have to
-              scroll past three panels of explanation to find the button. */}
-          <div className="order-first lg:order-none lg:sticky lg:top-6 lg:self-start">
-            {LAUNCHED ? <Swap /> : <NotLaunched />}
+        <section className="sheet" id="notes" aria-labelledby="notesTitle">
+          <span className="clip" aria-hidden />
+          <h2 className="title" id="notesTitle">
+            Notes
+          </h2>
+          <p className="lede">Short notes pinned to the crate. Plain sentences, nothing to read twice.</p>
+          <div className="notes">
+            <details>
+              <summary>What is in the crate</summary>
+              <p>$CRATE. Nothing else. No roadmap folded inside, no second box underneath, and nothing set aside for a team.</p>
+            </details>
+            <details>
+              <summary>Why the liquidity cannot come out</summary>
+              <p>
+                In Uniswap v4 a position is not an NFT — it is a row in the pool manager belonging to the contract
+                that added it. That contract has no function that removes liquidity: every liquidity change in it is
+                zero or positive. So there is nothing to transfer, sell, borrow against or approve away, and no
+                address — including whoever packed it — can withdraw it.
+              </p>
+            </details>
+            <details>
+              <summary>Where the trade fee goes</summary>
+              <p>
+                To one address, fixed inside the seal when it was deployed, with no function anywhere that changes
+                it. That is the project&rsquo;s only income. The rest of what people pay for supply stays in the pool.
+              </p>
+            </details>
+            <details>
+              <summary>Where the numbers come from</summary>
+              <p>
+                Price, valuation and the ETH sealed in are read out of Uniswap&rsquo;s pool manager, so they are right
+                in the block the pool is created rather than whenever an indexer notices it. The shipment log comes
+                from Blockscout. The page checks again every few seconds.
+              </p>
+            </details>
+            <details>
+              <summary>Why it stays shut</summary>
+              <p>A sealed crate is worth whatever people think is inside. Open it and the question is answered.</p>
+            </details>
           </div>
-        </div>
+        </section>
       </main>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] py-6 text-xs text-ink-soft">
-        <span className="stencil">{TICKER} · Robinhood Chain</span>
-        <a href={X_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-          {X_HANDLE} ↗
-        </a>
+      <footer className="wrap" style={{ padding: "20px 0 60px" }}>
+        <p className="stencil paint big">
+          Sealed once.
+          <br />
+          Never reopened.
+        </p>
+        <div className="label">
+          <div className="row">
+            <a href={X_URL} target="_blank" rel="noreferrer">
+              {X_HANDLE}
+            </a>
+            <a href={DEFAULT_EXPLORER_URL} target="_blank" rel="noreferrer">
+              Explorer
+            </a>
+          </div>
+          <p className="fine">
+            $CRATE is a memecoin on Robinhood Chain with no affiliation to Robinhood Markets, Inc. Nothing on this
+            page is financial advice.
+          </p>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
