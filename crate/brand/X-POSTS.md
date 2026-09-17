@@ -6,8 +6,26 @@ counts any link as 23 characters however long it is, and the free limit is 280.
 The counter also swaps `0x…` for a full-length address, because measuring the
 placeholder is how copy that "fits" turns out three over at the worst moment.
 
-`0x…` is a placeholder. Paste the real CA from `npm run pack` — and paste it
-from the terminal or `crate.config.json`, never retyped.
+The address in the copy below is the real one, taken from the pack receipt and
+recorded in `../contracts/crate.config.json`. Copy it from here rather than
+retyping it: a CA one character out is a different token, and on a launch post
+that is the mistake that cannot be taken back.
+
+    CA     0x1be2723C92F0ead9f2494C6D211aA33D4551326C
+    seal   0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
+
+## Before posting
+
+- `npm run verify` — `CrateSeal` has to be verified. It is the contract the
+  whole claim rests on, and the launch post invites people to go and read it.
+  `CrateSeal` and `CratePacker` are verified; `CrateToken` and `CrateRouter` are
+  not yet, which rules out exactly one alternative below, marked where it sits.
+- `npm run status` — confirms the pool is priced, and says whether anyone has
+  bought. Nobody having bought yet is the normal state and is not a reason to
+  wait: it is what the post is for.
+- Open `cratecoin.fun` once, first. X scrapes the link the moment the post is
+  sent and never again, so a page that is broken at that moment is a broken
+  card for the life of the post.
 
 ---
 
@@ -26,7 +44,7 @@ $CRATE is packed.
 The liquidity cannot be withdrawn. Not by anyone, including me — there is no
 function that does it.
 
-CA: 0x…
+CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 
 cratecoin.fun
 ```
@@ -41,8 +59,12 @@ held back for a team.
 
 Packed once, sealed once. Nobody opens it.
 
-CA: 0x…
+CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 ```
+
+Hold this one back until `CrateToken` verifies. It invites people to read the
+token contract, and an unverified contract answers that invitation with
+bytecode — which reads as the claim not surviving the first check.
 
 ```
 $CRATE. 1B supply, all of it in the pool, none of it in my wallet.
@@ -50,7 +72,7 @@ $CRATE. 1B supply, all of it in the pool, none of it in my wallet.
 The contract has no mint, no owner, no pause, and no way to pull the
 liquidity. Read it yourself — the source is verified.
 
-CA: 0x…
+CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 cratecoin.fun
 ```
 
@@ -126,7 +148,7 @@ $CRATE
 One crate on Robinhood Chain. 1B supply, all of it in one pool, and no
 function anywhere that takes it back out.
 
-CA: 0x…
+CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 cratecoin.fun
 ```
 
@@ -139,7 +161,8 @@ cratecoin.fun
 Stronger than locked — there is no function to remove it. Not a timer, not a
 multisig. The contract that owns the position has no code that decreases it.
 
-Source is verified, read it.
+Verified source, read it:
+robinhoodchain.blockscout.com/address/0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
 ```
 
 **"what's your allocation?"**

@@ -35,10 +35,13 @@ for (const line of lines) {
     // Two substitutions, because the draft is shorter than the post will be.
     // A contract address placeholder is four characters and the real thing is
     // forty-two — measuring the placeholder is how copy that "fits" goes over
-    // at the worst possible moment. A link X counts as 23 whatever its length.
+    // at the worst possible moment. A link X counts as 23 whatever its length,
+    // and that includes its path: the explorer link to the seal is 62
+    // characters of which X charges for 23, so counting the path would trim
+    // copy that already fits.
     const counted = text
       .replace(/0x…/g, "0x".padEnd(42, "0"))
-      .replace(/https?:\/\/\S+|\b\S+\.(fun|site|com)\b/g, "x".repeat(23));
+      .replace(/https?:\/\/\S+|\b[\w-]+(?:\.[\w-]+)*\.(?:fun|site|com)(?:\/\S*)?/g, "x".repeat(23));
     const length = [...counted].length;
 
     const flag = length > LIMIT ? "OVER" : "ok";
