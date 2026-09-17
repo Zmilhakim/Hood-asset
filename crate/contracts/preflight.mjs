@@ -9,7 +9,11 @@
 // which a wrong address can be corrected closes at `npm run deploy` — after that
 // every fee the crate ever earns belongs to whatever was typed. Everything here
 // exists to use that window.
-import { formatEther } from "viem";
+import { concatHex, encodeAbiParameters, formatEther, parseAbiParameters } from "viem";
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { checkPoolManager, connect, fail } from "./lib/env.mjs";
 import { configAddress, configNumber, configPrice, loadConfig } from "./lib/config.mjs";
@@ -102,6 +106,50 @@ if (deployerBalance === 0n) {
   );
 } else {
   ok("deployer", `${deployer} (${formatEther(deployerBalance)} ETH for gas)`);
+}
+
+// What the two transactions will actually cost. Guessing is no good here: on an
+// Arbitrum Orbit chain the L1 data fee is folded into the gas estimate, so it
+// moves with L1 and cannot be worked out from the bytecode size alone.
+try {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const artifact = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8"));
+
+  const [gas, gasPrice] = await Promise.all([
+    publicClient.estimateGas({
+      account: deployer,
+      data: concatHex([
+        `0x${artifact.evm.bytecode.object}`,
+        encodeAbiParameters(parseAbiParameters("address, address"), [poolManager, treasury]),
+      ]),
+    }),
+    publicClient.getGasPrice(),
+  ]);
+
+  const deployCost = gas * gasPrice;
+  // Packing costs less than deploying — it deploys one smaller contract instead
+  // of two — but the same again is the headroom worth having.
+  const needed = deployCost * 2n;
+
+  if (deployerBalance < needed) {
+    bad(
+      "gas",
+      `deploy costs about ${formatEther(deployCost)} ETH, and ${formatEther(deployerBalance)} ETH is not enough for both steps`,
+      `Top the deployer up to around ${formatEther(needed)} ETH. Nothing is lost if`,
+      "it does run short — both commands can simply be run again — but a top-up",
+      "now is cheaper than finding out halfway.",
+    );
+  } else {
+    ok("gas", `deploy costs about ${formatEther(deployCost)} ETH at ${formatEther(gasPrice * 10n ** 9n)} gwei; balance covers both steps`);
+  }
+} catch (error) {
+  warn(
+    "gas",
+    "could not estimate what the deploy will cost",
+    `  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`,
+    "Not blocking — deploy.mjs prints the transaction hash either way, and a",
+    "transaction that runs short can be sent again.",
+  );
 }
 
 // If a key happens to be loaded, say whether it is the one this config names.
