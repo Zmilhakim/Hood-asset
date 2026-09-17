@@ -55,6 +55,23 @@ const ceilEth = configPrice(config, "launch.ceilEth", "CEIL_ETH", {
   what: "what the whole supply is worth at the far end of the range",
 });
 
+// The compiled contracts. `npm ci` does not produce these — `out/` is built,
+// not committed — and deploy.mjs reads this very file, so a missing one is not
+// a detail to warn about: it is the deploy failing a minute from now.
+const here = dirname(fileURLToPath(import.meta.url));
+let artifact;
+try {
+  artifact = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8"));
+  ok("build", `contracts compiled, packer is ${artifact.evm.deployedBytecode.object.length / 2} bytes`);
+} catch {
+  bad(
+    "build",
+    "the contracts have not been compiled — out/CratePacker.json is not there",
+    "Run `npm run compile` and then this again. deploy.mjs reads the same file,",
+    "so it would stop here too. On a phone the Solidity compiler takes a minute.",
+  );
+}
+
 const { publicClient, chain } = await connect();
 if (chain.id !== config.chainId) {
   fail(`crate.config.json says chain ${config.chainId}, but the scripts are built for ${chain.id}`);
@@ -111,45 +128,44 @@ if (deployerBalance === 0n) {
 // What the two transactions will actually cost. Guessing is no good here: on an
 // Arbitrum Orbit chain the L1 data fee is folded into the gas estimate, so it
 // moves with L1 and cannot be worked out from the bytecode size alone.
-try {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const artifact = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8"));
+if (artifact) {
+  try {
+    const [gas, gasPrice] = await Promise.all([
+      publicClient.estimateGas({
+        account: deployer,
+        data: concatHex([
+          `0x${artifact.evm.bytecode.object}`,
+          encodeAbiParameters(parseAbiParameters("address, address"), [poolManager, treasury]),
+        ]),
+      }),
+      publicClient.getGasPrice(),
+    ]);
 
-  const [gas, gasPrice] = await Promise.all([
-    publicClient.estimateGas({
-      account: deployer,
-      data: concatHex([
-        `0x${artifact.evm.bytecode.object}`,
-        encodeAbiParameters(parseAbiParameters("address, address"), [poolManager, treasury]),
-      ]),
-    }),
-    publicClient.getGasPrice(),
-  ]);
+    const deployCost = gas * gasPrice;
+    // Packing costs less than deploying — it deploys one smaller contract
+    // instead of two — but the same again is the headroom worth having.
+    const needed = deployCost * 2n;
 
-  const deployCost = gas * gasPrice;
-  // Packing costs less than deploying — it deploys one smaller contract instead
-  // of two — but the same again is the headroom worth having.
-  const needed = deployCost * 2n;
-
-  if (deployerBalance < needed) {
-    bad(
+    if (deployerBalance < needed) {
+      bad(
+        "gas",
+        `deploy costs about ${formatEther(deployCost)} ETH, and ${formatEther(deployerBalance)} ETH is not enough for both steps`,
+        `Top the deployer up to around ${formatEther(needed)} ETH. Nothing is lost if`,
+        "it does run short — both commands can simply be run again — but a top-up",
+        "now is cheaper than finding out halfway.",
+      );
+    } else {
+      ok("gas", `deploy costs about ${formatEther(deployCost)} ETH; the balance covers both steps`);
+    }
+  } catch (error) {
+    warn(
       "gas",
-      `deploy costs about ${formatEther(deployCost)} ETH, and ${formatEther(deployerBalance)} ETH is not enough for both steps`,
-      `Top the deployer up to around ${formatEther(needed)} ETH. Nothing is lost if`,
-      "it does run short — both commands can simply be run again — but a top-up",
-      "now is cheaper than finding out halfway.",
+      "could not estimate what the deploy will cost",
+      `  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`,
+      "Not blocking — deploy.mjs prints the transaction hash either way, and a",
+      "transaction that runs short can be sent again.",
     );
-  } else {
-    ok("gas", `deploy costs about ${formatEther(deployCost)} ETH at ${formatEther(gasPrice * 10n ** 9n)} gwei; balance covers both steps`);
   }
-} catch (error) {
-  warn(
-    "gas",
-    "could not estimate what the deploy will cost",
-    `  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`,
-    "Not blocking — deploy.mjs prints the transaction hash either way, and a",
-    "transaction that runs short can be sent again.",
-  );
 }
 
 // If a key happens to be loaded, say whether it is the one this config names.
