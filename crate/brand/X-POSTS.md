@@ -3,8 +3,12 @@
 Everything to post, in the order it goes out. Character counts are measured by
 `node count.mjs`, not estimated: X counts Unicode code points rather than bytes,
 counts any link as 23 characters however long it is, and the free limit is 280.
-The counter also swaps `0x…` for a full-length address, because measuring the
-placeholder is how copy that "fits" turns out three over at the worst moment.
+
+Every fenced block is the post exactly as it should be sent. The line breaks in
+them are deliberate — blank lines between paragraphs, and nothing wrapped to fit
+this file. A break in the middle of a sentence reads on X as a break somebody
+meant, which is why the blocks run past 80 columns and the prose around them
+does not.
 
 The address in the copy below is the real one, taken from the pack receipt and
 recorded in `../contracts/crate.config.json`. Copy it from here rather than
@@ -41,8 +45,7 @@ $CRATE is packed.
 
 1,000,000,000 tokens. All of it into one pool on Robinhood Chain.
 
-The liquidity cannot be withdrawn. Not by anyone, including me — there is no
-function that does it.
+The liquidity cannot be withdrawn. Not by anyone, including me — there is no function that does it.
 
 CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 
@@ -54,8 +57,7 @@ Alternatives —
 ```
 One crate on Robinhood Chain.
 
-The whole supply went into one pool. The pool cannot be drained. Nothing was
-held back for a team.
+The whole supply went into one pool. The pool cannot be drained. Nothing was held back for a team.
 
 Packed once, sealed once. Nobody opens it.
 
@@ -64,15 +66,15 @@ CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
 
 Hold this one back until `CrateToken` verifies. It invites people to read the
 token contract, and an unverified contract answers that invitation with
-bytecode — which reads as the claim not surviving the first check.
+bytecode — which reads as the claim failing its first check.
 
 ```
 $CRATE. 1B supply, all of it in the pool, none of it in my wallet.
 
-The contract has no mint, no owner, no pause, and no way to pull the
-liquidity. Read it yourself — the source is verified.
+The contract has no mint, no owner, no pause, and no way to pull the liquidity. Read it yourself — the source is verified.
 
 CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
+
 cratecoin.fun
 ```
 
@@ -85,52 +87,44 @@ screenshot of any single post is not misleading.
 
 **1/**
 ```
-Most launches say "liquidity locked" and mean a timer, or a multisig, or a
-promise.
+Most launches say "liquidity locked" and mean a timer, or a multisig, or a promise.
 
 $CRATE means there is no function that removes it. Not locked. Absent.
 ```
 
 **2/**
 ```
-It runs on Uniswap v4, where a liquidity position is not an NFT — it is a row
-in the pool manager belonging to the contract that added it.
+It runs on Uniswap v4, where a liquidity position is not an NFT — it is a row in the pool manager belonging to the contract that added it.
 
-So there is nothing to transfer, sell, borrow against, or approve away by
-mistake. There is no object.
+So there is nothing to transfer, sell, borrow against, or approve away by mistake. There is no object.
 ```
 
 **3/**
 ```
-The contract that owns it has no function that decreases liquidity. Every
-liquidity change in the file is zero or positive.
+The contract that owns it has no function that decreases liquidity. Every liquidity change in the file is zero or positive.
 
 That is the whole claim, and it is one search away from being checked.
 ```
 
 **4/**
 ```
-What I earn: the pool's 1% trading fee, paid to one address fixed inside the
-contract before the token existed. There is no function that changes it.
+What I earn: the pool's 1% trading fee, paid to one address fixed inside the contract before the token existed. There is no function that changes it.
 
-What I don't: no team allocation, no reserve, no unlock later. The supply went
-in whole.
+What I don't: no team allocation, no reserve, no unlock later. The supply went in whole.
 ```
 
 **5/**
 ```
 What this does not promise:
 
-Locked liquidity is not a price floor. It means the money paid for supply
-stays in the pool — not that the price can't fall.
+Locked liquidity is not a price floor. It means the money paid for supply stays in the pool — not that the price can't fall.
 
 The contracts are not audited. It can go to zero.
 ```
 
 **6/**
 ```
-Buy and sell on the dock, straight against the pool. Every figure on the page
-is read from the pool manager, not from an indexer.
+Buy and sell on the dock, straight against the pool. Every figure on the page is read from the pool manager, not from an indexer.
 
 cratecoin.fun
 ```
@@ -145,10 +139,10 @@ price moves —
 ```
 $CRATE
 
-One crate on Robinhood Chain. 1B supply, all of it in one pool, and no
-function anywhere that takes it back out.
+One crate on Robinhood Chain. 1B supply, all of it in one pool, and no function anywhere that takes it back out.
 
 CA: 0x1be2723C92F0ead9f2494C6D211aA33D4551326C
+
 cratecoin.fun
 ```
 
@@ -158,8 +152,7 @@ cratecoin.fun
 
 **"is the liquidity locked?"**
 ```
-Stronger than locked — there is no function to remove it. Not a timer, not a
-multisig. The contract that owns the position has no code that decreases it.
+Stronger than locked — there is no function to remove it. Not a timer, not a multisig. The contract that owns the position has no code that decreases it.
 
 Verified source, read it:
 robinhoodchain.blockscout.com/address/0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
@@ -167,25 +160,21 @@ robinhoodchain.blockscout.com/address/0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
 
 **"what's your allocation?"**
 ```
-None. The supply was minted straight into the pool in the same transaction —
-it never sat in a wallet.
+None. The supply was minted straight into the pool in the same transaction — it never sat in a wallet.
 
-I earn the 1% trading fee, paid to an address fixed in the contract. That is
-all of it.
+I earn the 1% trading fee, paid to an address fixed in the contract. That is all of it.
 ```
 
 **"why isn't it on DexScreener?"**
 ```
 It's a Uniswap v4 pool, and v4 indexing on this chain is newer than v3.
 
-cratecoin.fun reads the pool manager directly, so the price there is right
-whether or not an indexer has caught up.
+cratecoin.fun reads the pool manager directly, so the price there is right whether or not an indexer has caught up.
 ```
 
 **"is this Robinhood's token?"**
 ```
-No. Robinhood Chain is run by Robinhood. $CRATE is not made, checked, or
-backed by them, and nothing here should be read as if it were.
+No. Robinhood Chain is run by Robinhood. $CRATE is not made, checked, or backed by them, and nothing here should be read as if it were.
 ```
 
 ---
@@ -213,3 +202,14 @@ scrapes the link once, when the post is made, so the card cannot be added
 afterwards. Check the preview renders before sending.
 
 For a post without the link, attach `../site/public/og.png` by hand.
+
+`out/post-seal.png` lists every external function `CrateSeal` has, taken from
+the compiled contract rather than typed out, under an instruction to find the
+one that removes liquidity. It belongs under thread post **3/**, which makes
+that claim in words.
+
+`out/post-supply.png` is where the supply went: 100% into the pool, nothing to a
+team, nothing reserved, nothing unlocking later. It belongs under **4/**.
+
+Both are regenerated by `node render.mjs`, which reads the seal's ABI out of
+`../contracts/out` — so the list on the card cannot drift from the contract.
