@@ -153,6 +153,29 @@ all if anything in the file is 66 characters of hex.
 Any single value can still be overridden for one run (`TREASURY=0x… npm run
 preflight`), which is for trying something, not for launching.
 
+### The venue
+
+Uniswap v4 is live on Robinhood Chain. These come from Uniswap's own deployment
+record, [`deployments/4663.md`](https://github.com/Uniswap/contracts/blob/main/deployments/4663.md):
+
+| Contract | Address |
+| --- | --- |
+| PoolManager | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
+
+Deployed 22 May 2026, in transaction
+`0x4fb28d4935866f462582c6c931c6f2705e55f5be5eb178c7d8d9329a95c44c41`.
+
+That is the only venue address this launch needs. v4 holds every pool in one
+manager, and the pool's other side is native ETH, so there is no factory, no
+position manager and no WETH to record — the three things the v3 launchpad in
+this repository has to name and cross-check.
+
+Worth knowing if you are comparing the two: **Hoodpad is on Uniswap v3 and CRATE
+is on v4**, so they share a chain and a fee tier but not a venue. The same record
+lists the v3 factory at `0x1f7d7550b1b028f7571e69a784071f0205fd2efa`, which is
+the address Hoodpad deployed against and verified on chain — so the record agrees
+with something already known to be right.
+
 ### Preflight
 
 `npm run preflight` sends nothing and needs no key. It checks the config parses
