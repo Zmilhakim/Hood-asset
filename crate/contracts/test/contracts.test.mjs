@@ -31,6 +31,7 @@ const sealArtifact = artifact("CrateSeal");
 const tokenArtifact = artifact("CrateToken");
 const managerArtifact = artifact("TestPoolManager");
 const routerArtifact = artifact("TestSwapRouter");
+const crateRouterArtifact = artifact("CrateRouter");
 
 const SUPPLY = 1_000_000_000n * 10n ** 18n;
 const NAME = "Crate";
@@ -42,6 +43,7 @@ const GAS = 200_000_000n;
 const MIN_SQRT_PRICE = 4295128739n;
 const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n;
 const NATIVE = "0x0000000000000000000000000000000000000000";
+const MAX_DEADLINE = 2n ** 48n;
 
 const PACKER = new Address(hexToBytes("0x00000000000000000000000000000000000000f0"));
 const STRANGER = new Address(hexToBytes("0x00000000000000000000000000000000000000f1"));
@@ -83,13 +85,30 @@ async function fresh() {
     return getAddress(result.createdAddress.toString());
   };
 
-  const call = async (to, abi, functionName, args = [], { caller = PACKER, value = 0n } = {}) => {
+  const call = async (to, abi, functionName, args = [], { caller = PACKER, value = 0n, timestamp } = {}) => {
     const result = await evm.runCall({
       caller,
       to: new Address(hexToBytes(to)),
       data: hexToBytes(encodeFunctionData({ abi, functionName, args })),
       gasLimit: GAS,
       value,
+      // The local EVM's block sits at timestamp 0, which no deadline is later
+      // than. Anything testing expiry has to say when "now" is.
+      ...(timestamp === undefined
+        ? {}
+        : {
+            block: {
+              header: {
+                timestamp,
+                number: 1n,
+                gasLimit: 30_000_000n,
+                baseFeePerGas: 0n,
+                difficulty: 0n,
+                prevRandao: new Uint8Array(32),
+                coinbase: new Address(hexToBytes(NATIVE)),
+              },
+            },
+          }),
     });
     return {
       reverted: result.execResult.exceptionError !== undefined,
@@ -488,6 +507,162 @@ test("the liquidity has no way out, and the packer has no way back in", () => {
     /mint|withdraw|rescue|sweep|recover|setFee|owner|renounce|upgrade/i.test(name),
   );
   assert.deepEqual(levers, [], "a lever appeared on the packer");
+});
+
+test("the router buys and sells, and keeps nothing on the way through", async () => {
+  const ctx = await venue();
+  const { token } = await pack(ctx);
+
+  const router = await ctx.deploy(crateRouterArtifact, "address", [ctx.packer]);
+
+  // It knows exactly one pool, read off the packer rather than passed in.
+  assert.equal(await ctx.read(router, crateRouterArtifact.abi, "token"), token);
+  assert.equal(await ctx.read(router, crateRouterArtifact.abi, "fee"), FEE);
+  assert.equal(await ctx.read(router, crateRouterArtifact.abi, "poolManager"), ctx.manager);
+
+  const ethIn = 10n ** 17n;
+  const bought = await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, MAX_DEADLINE], {
+    caller: TRADER,
+    value: ethIn,
+  });
+  assert.equal(bought.reverted, false, "buy reverted");
+
+  const held = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]);
+  assert.ok(held > 0n, "the buyer got no CRATE");
+
+  // Nothing sticks to the router.
+  assert.equal(await ctx.balanceOf(router), 0n, "the router kept ETH");
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "balanceOf", [router]), 0n, "the router kept CRATE");
+
+  // And back the other way, which needs an allowance rather than a permit.
+  const sellAmount = held / 2n;
+  assert.equal(
+    (await ctx.call(token, tokenArtifact.abi, "approve", [router, sellAmount], { caller: TRADER })).reverted,
+    false,
+  );
+
+  const ethBefore = await ctx.balanceOf(address(TRADER));
+  const sold = await ctx.call(router, crateRouterArtifact.abi, "sell", [sellAmount, 0n, MAX_DEADLINE], {
+    caller: TRADER,
+  });
+  assert.equal(sold.reverted, false, "sell reverted");
+  assert.ok((await ctx.balanceOf(address(TRADER))) > ethBefore, "the seller got no ETH back");
+
+  assert.equal(await ctx.balanceOf(router), 0n);
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "balanceOf", [router]), 0n);
+});
+
+test("the router refuses a fill worse than asked for, or later than asked for", async () => {
+  const ctx = await venue();
+  const { token } = await pack(ctx);
+  const router = await ctx.deploy(crateRouterArtifact, "address", [ctx.packer]);
+
+  // Slippage: demand more CRATE than 0.1 ETH can possibly buy.
+  const greedy = await ctx.call(router, crateRouterArtifact.abi, "buy", [SUPPLY, MAX_DEADLINE], {
+    caller: TRADER,
+    value: 10n ** 17n,
+  });
+  assert.equal(greedy.reverted, true, "an impossible minimum should revert");
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]), 0n);
+
+  // Deadline: the same trade, at a time after it expires.
+  const late = await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, 1_000n], {
+    caller: TRADER,
+    value: 10n ** 17n,
+    timestamp: 2_000n,
+  });
+  assert.equal(late.reverted, true, "a stale deadline should revert");
+
+  // The same call inside the deadline goes through, so it is the clock that
+  // stopped it and not something else.
+  const intime = await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, 5_000n], {
+    caller: TRADER,
+    value: 10n ** 17n,
+    timestamp: 2_000n,
+  });
+  assert.equal(intime.reverted, false, "a live deadline should not revert");
+
+  // And an empty trade is not a trade.
+  assert.equal((await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, MAX_DEADLINE], { caller: TRADER })).reverted, true);
+  assert.equal(
+    (await ctx.call(router, crateRouterArtifact.abi, "sell", [0n, 0n, MAX_DEADLINE], { caller: TRADER })).reverted,
+    true,
+  );
+});
+
+test("ETH the pool could not take comes back to the buyer", async () => {
+  const ctx = await venue();
+  const { token } = await pack(ctx);
+  const router = await ctx.deploy(crateRouterArtifact, "address", [ctx.packer]);
+
+  // Far more than the whole supply is worth, so the swap stops at the end of the
+  // range with most of it unspent.
+  const absurd = 500n * 10n ** 18n;
+  const before = await ctx.balanceOf(address(TRADER));
+  const bought = await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, MAX_DEADLINE], {
+    caller: TRADER,
+    value: absurd,
+  });
+  assert.equal(bought.reverted, false);
+
+  const spent = before - (await ctx.balanceOf(address(TRADER)));
+  assert.ok(spent < absurd / 10n, `the buyer was charged ${spent} of ${absurd} — change was not returned`);
+  assert.equal(await ctx.balanceOf(router), 0n, "the change stayed in the router");
+
+  // They did get the supply they paid for.
+  const held = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]);
+  assert.ok(held > (SUPPLY * 9n) / 10n, "an absurd buy should clear nearly the whole range");
+});
+
+test("the router cannot be aimed anywhere else, and answers only the manager", async () => {
+  const ctx = await venue();
+
+  // Before the crate is packed there is no pool to point at, so there is no
+  // router either.
+  const early = await ctx.evm.runCall({
+    caller: PACKER,
+    to: undefined,
+    gasLimit: GAS,
+    data: hexToBytes(
+      concatHex([
+        `0x${crateRouterArtifact.evm.bytecode.object}`,
+        encodeAbiParameters(parseAbiParameters("address"), [ctx.packer]),
+      ]),
+    ),
+  });
+  assert.notEqual(early.execResult.exceptionError, undefined, "a router for an unpacked crate should not deploy");
+
+  await pack(ctx);
+  const router = await ctx.deploy(crateRouterArtifact, "address", [ctx.packer]);
+
+  // The pool is read from the packer every time, so there is nothing to set.
+  const setters = crateRouterArtifact.abi
+    .filter((f) => f.type === "function")
+    .map((f) => f.name)
+    .filter((name) => /^set|owner|withdraw|rescue|sweep|recover|pause|upgrade/i.test(name));
+  assert.deepEqual(setters, [], "a lever appeared on the router");
+
+  for (const caller of [STRANGER, TRADER]) {
+    const forged = await ctx.call(router, crateRouterArtifact.abi, "unlockCallback", ["0x00"], { caller });
+    assert.equal(forged.reverted, true, "the callback answered someone who is not the pool manager");
+  }
+});
+
+test("trading through the router still pays the treasury", async () => {
+  const ctx = await venue();
+  const { token } = await pack(ctx);
+  const router = await ctx.deploy(crateRouterArtifact, "address", [ctx.packer]);
+
+  await ctx.call(router, crateRouterArtifact.abi, "buy", [0n, MAX_DEADLINE], { caller: TRADER, value: 10n ** 17n });
+  const held = await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TRADER)]);
+  await ctx.call(token, tokenArtifact.abi, "approve", [router, held / 2n], { caller: TRADER });
+  await ctx.call(router, crateRouterArtifact.abi, "sell", [held / 2n, 0n, MAX_DEADLINE], { caller: TRADER });
+
+  const before = await ctx.balanceOf(address(TREASURY));
+  assert.equal((await ctx.call(ctx.seal, sealArtifact.abi, "collectFees", [], { caller: STRANGER })).reverted, false);
+
+  assert.ok((await ctx.balanceOf(address(TREASURY))) > before, "no ETH fee reached the treasury");
+  assert.ok((await ctx.read(token, tokenArtifact.abi, "balanceOf", [address(TREASURY)])) > 0n, "no CRATE fee reached it");
 });
 
 test("CrateToken mints its supply once and can only ever shrink", async () => {

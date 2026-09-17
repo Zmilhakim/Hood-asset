@@ -9,6 +9,7 @@ Foundry, no network access needed.
 | `CrateToken`  | Fixed-supply ERC20. No mint, no owner, no pause.                            |
 | `CratePacker` | Packs the crate, once: mints the supply, opens the pool, seals the liquidity. |
 | `CrateSeal`   | Owns the liquidity forever. Pays the trading fees to one fixed address.      |
+| `CrateRouter` | Buys and sells $CRATE. Trades one pool, holds nothing, has no owner.         |
 
 ```bash
 npm install
@@ -19,6 +20,7 @@ npm run whoami    # which address does the key I stored control?
 npm run preflight # everything that can be checked before any gas is spent
 npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
+npm run deploy-router  # the contract the site trades through, after packing
 ```
 
 ## What packing does
@@ -190,6 +192,33 @@ pool pays native ETH with a plain call and reverts if the recipient refuses it,
 so a contract with no payable `receive` would make `collectFees` — and
 `compound` — revert forever. An ordinary account or a hardware wallet is always
 fine; a contract needs checking first.
+
+## Trading it
+
+In v4 there is no pool contract to call. Every pool lives inside the one
+manager, and reaching a pool means unlocking that manager and being called back
+— which a wallet cannot do by itself. So a trade needs a contract in between,
+and `CrateRouter` is the smallest one that does the job honestly:
+
+```
+buy(minCrateOut, deadline) payable      spend ETH on CRATE
+sell(crateIn, minEthOut, deadline)      sell it back, after an ordinary approve
+```
+
+Both revert rather than fill worse than the minimum, or later than the deadline.
+Unspent ETH goes back to the buyer in the same transaction.
+
+**Its pool is fixed at deployment.** The constructor reads the key off the
+packer, so the router cannot be pointed at another pool, another token, or a
+pool with a hook in it — there is no setter and no owner. It holds nothing
+between transactions, and has no function that could move a balance out if it
+somehow did. That is what makes it reasonable to approve.
+
+Chain 4663 also has Uniswap's own Universal Router, which works too and is the
+better choice for anything general. It is not used here because selling through
+it needs a Permit2 approval as well as an ERC20 one, and this pool has exactly
+one token worth trading. The pool is public either way: nothing about it depends
+on this router, and any other interface can reach it.
 
 ## Pricing the launch
 

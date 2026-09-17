@@ -72,6 +72,7 @@ mkdirSync(outDir, { recursive: true });
 
 const DEPLOYED = {
   "CratePacker.sol": "CratePacker",
+  "CrateRouter.sol": "CrateRouter",
   "CrateSeal.sol": "CrateSeal",
   "CrateToken.sol": "CrateToken",
 };

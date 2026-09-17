@@ -12,7 +12,8 @@
     "whoami": "node whoami.mjs",
     "preflight": "node preflight.mjs",
     "deploy": "node deploy.mjs",
-    "pack": "node pack.mjs"
+    "pack": "node pack.mjs",
+    "deploy-router": "node deploy-router.mjs"
   },
   "license": "MIT",
   "dependencies": {
