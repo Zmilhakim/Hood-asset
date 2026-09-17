@@ -7,8 +7,8 @@
   "launch": {
     "fee": 10000,
     "tickSpacing": 200,
-    "floorEth": "",
-    "ceilEth": ""
+    "floorEth": "2",
+    "ceilEth": "200"
   },
   "deployed": {
     "packer": "",

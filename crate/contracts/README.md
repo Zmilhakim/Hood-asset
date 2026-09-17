@@ -201,6 +201,30 @@ npm run pack               # prints the plan and still sends nothing
 CONFIRM=pack npm run pack  # sends it
 ```
 
+### The curve this launch uses
+
+`floorEth` 2, `ceilEth` 200 — the supply opens at a 2 ETH valuation and the range
+runs to 200, a hundredfold. Simulated against the real pool manager:
+
+| ETH bought | Share of supply | Valuation after |
+| --- | --- | --- |
+| 0.1 | 4.7% | 2.2 ETH |
+| 1 | 34.0% | 4.2 ETH |
+| 3 | 63.3% | 10.9 ETH |
+| 10 | 90.6% | 59.1 ETH |
+| 20 | 99.8% | 194.6 ETH |
+
+Two numbers decide everything else. The **floor** sets what the first buyer can
+take: at a 1 ETH floor the first 0.1 ETH takes 9% of the supply, and at 2 ETH it
+takes 4.7% — the ceiling barely moves that at all. The **pair** sets the
+capacity, which is almost exactly the geometric mean: it takes about
+`sqrt(floor × ceil)` ETH of buying to consume the whole supply, so 20 ETH here.
+Set that too low and the supply runs out early; too high and the price barely
+answers the buying, which on a young chain reads as a dead chart.
+
+Unlike the treasury, this is not a one-way door: nothing reads these two numbers
+until `pack`, so they can be changed at any point before it.
+
 Because CRATE is `currency1`, a dearer token is a *lower* tick: the floor price
 is the top of the range and the ceiling is the bottom. Spot is initialised at the
 top, so the first buy fills immediately and the pool never asks the seal for ETH.
