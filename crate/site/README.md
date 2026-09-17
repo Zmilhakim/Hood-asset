@@ -71,5 +71,16 @@ somebody's wallet.
 
 ## Deploying
 
-Vercel, with `NEXT_PUBLIC_*` set in the project. `vercel.json` pins the Next.js
-preset. The custom domain is `cratecoin.fun`.
+Vercel, project `cratecoin`, serving `cratecoin.fun`.
+
+The repository holds several projects, so the Vercel project's **Root Directory
+must be `crate/site`** — it is a dashboard setting with no API, and without it
+the build starts at the repository root, finds no `package.json`, and fails.
+`vercel.json` inside this directory pins the Next.js preset, so nothing else
+needs setting by hand.
+
+`NEXT_PUBLIC_TOKEN_ADDRESS`, `NEXT_PUBLIC_ROUTER_ADDRESS` and
+`NEXT_PUBLIC_PACKER_ADDRESS` go in the project's environment variables after the
+crate is packed. They are read at build time, so setting them means a redeploy —
+which is the point of having the site up beforehand: at launch it is a variable
+change and a redeploy, not a build from nothing.
