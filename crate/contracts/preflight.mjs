@@ -59,16 +59,31 @@ const ceilEth = configPrice(config, "launch.ceilEth", "CEIL_ETH", {
 // not committed — and deploy.mjs reads this very file, so a missing one is not
 // a detail to warn about: it is the deploy failing a minute from now.
 const here = dirname(fileURLToPath(import.meta.url));
+
+// All four, not just the one this file happens to need. Checking a single
+// artifact let a stale out/ — built before CrateRouter existed — pass here and
+// fail two commands later, which is a bad place to learn it.
+const NEEDED = ["CratePacker", "CrateSeal", "CrateToken", "CrateRouter"];
 let artifact;
-try {
-  artifact = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8"));
-  ok("build", `contracts compiled, packer is ${artifact.evm.deployedBytecode.object.length / 2} bytes`);
-} catch {
+const missing = [];
+for (const name of NEEDED) {
+  try {
+    const built = JSON.parse(readFileSync(join(here, "out", `${name}.json`), "utf8"));
+    if (name === "CratePacker") artifact = built;
+  } catch {
+    missing.push(name);
+  }
+}
+
+if (missing.length === 0) {
+  ok("build", `all ${NEEDED.length} contracts compiled, packer is ${artifact.evm.deployedBytecode.object.length / 2} bytes`);
+} else {
   bad(
     "build",
-    "the contracts have not been compiled — out/CratePacker.json is not there",
-    "Run `npm run compile` and then this again. deploy.mjs reads the same file,",
-    "so it would stop here too. On a phone the Solidity compiler takes a minute.",
+    `not compiled, or compiled before these existed: ${missing.join(", ")}`,
+    "Run `npm run compile` and then this again. deploy.mjs, pack.mjs and",
+    "deploy-router.mjs each read one of these, so a gap here is a failure",
+    "later. On a phone the Solidity compiler takes a minute.",
   );
 }
 

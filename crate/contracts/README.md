@@ -11,6 +11,10 @@ Foundry, no network access needed.
 | `CrateSeal`   | Owns the liquidity forever. Pays the trading fees to one fixed address.      |
 | `CrateRouter` | Buys and sells $CRATE. Trades one pool, holds nothing, has no owner.         |
 
+Compile first, always. `out/` is built rather than committed, so a fresh
+checkout — or one that predates a contract — has nothing for the deploy scripts
+to read.
+
 ```bash
 npm install
 npm run compile   # writes out/, PoolManager included
@@ -230,6 +234,11 @@ npm run preflight          # nothing is spent, and nothing is committed yet
 npm run pack               # prints the plan and still sends nothing
 CONFIRM=pack npm run pack  # sends it
 ```
+
+**Do not chain these with `&&`.** A dry run is a success, so `npm run pack`
+exits 0 without sending anything and the next command in the chain runs against
+a crate that was never packed. Each step is its own command on purpose: the
+plan is printed so somebody reads it.
 
 ### The curve this launch uses
 

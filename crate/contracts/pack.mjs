@@ -21,7 +21,21 @@ import { cratePoolKey, poolId, readSlot0 } from "./lib/pool.mjs";
 import { launchRange, pricePerToken } from "./lib/ticks.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const abi = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8")).abi;
+/** The compiled contract, or the one instruction that fixes its absence. */
+function readArtifact(name) {
+  try {
+    return JSON.parse(readFileSync(join(here, "out", `${name}.json`), "utf8"));
+  } catch {
+    fail(
+      `out/${name}.json is not there, so there is nothing to deploy.`,
+      "",
+      "Run `npm run compile` first. out/ is built rather than committed, and a",
+      "checkout that predates a contract will not have it.",
+    );
+  }
+}
+
+const abi = readArtifact("CratePacker").abi;
 
 requireEnv(["DEPLOYER_KEY"]);
 
