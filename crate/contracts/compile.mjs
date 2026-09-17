@@ -35,15 +35,33 @@ const REMAPPINGS = [
   ["openzeppelin-contracts/", "@uniswap/v4-core/lib/openzeppelin-contracts/"],
 ];
 
+/**
+ * Every source solc pulled in through the callback, keyed by the path it asked
+ * for.
+ *
+ * This is what makes verification possible later. solc resolves imports by
+ * calling back, so the input object below holds only our own files — an
+ * explorer handed that would fail to find a single OpenZeppelin or Uniswap
+ * import. Recording what the callback answered lets `verify.mjs` submit an
+ * input that stands on its own, and `npm run compile` checks that the
+ * standalone version really does produce the same bytecode.
+ */
+const resolved = {};
+
 function findImports(path) {
+  const asked = path;
   try {
     for (const [from, to] of REMAPPINGS) {
       if (path.startsWith(from)) path = to + path.slice(from.length);
     }
-    if (path.startsWith("@")) return { contents: readFileSync(require.resolve(path, { paths: [here] }), "utf8") };
-    return { contents: readFileSync(join(srcDir, path), "utf8") };
+    const contents = path.startsWith("@")
+      ? readFileSync(require.resolve(path, { paths: [here] }), "utf8")
+      : readFileSync(join(srcDir, path), "utf8");
+
+    resolved[asked] = { content: contents };
+    return { contents };
   } catch (error) {
-    return { error: `not found: ${path} (${error.message})` };
+    return { error: `not found: ${asked} (${error.message})` };
   }
 }
 
@@ -110,5 +128,31 @@ for (const [file, names] of Object.entries(TEST_ONLY)) {
   }
 }
 
+// The same compilation, standing on its own: every import inlined, no callback
+// needed. This is what an explorer is given, and it is worth proving rather
+// than assuming — a verification input that compiles to different bytecode is
+// rejected on submission, which is a slow and confusing way to find out.
+const standalone = { ...input, sources: { ...resolved, ...input.sources } };
+const check = JSON.parse(solc.compile(JSON.stringify(standalone)));
+
+const checkErrors = (check.errors ?? []).filter((d) => d.severity === "error");
+if (checkErrors.length > 0) {
+  for (const d of checkErrors) console.error(d.formattedMessage.trimEnd());
+  console.error("\nthe standalone verification input does not compile");
+  process.exit(1);
+}
+
+for (const [file, name] of Object.entries(DEPLOYED)) {
+  const mine = output.contracts[file][name].evm.deployedBytecode.object;
+  const theirs = check.contracts?.[file]?.[name]?.evm?.deployedBytecode?.object;
+  if (mine !== theirs) {
+    console.error(`${name}: the verification input compiles to different bytecode — do not submit it`);
+    process.exit(1);
+  }
+}
+
+writeFileSync(join(outDir, "solc-input.json"), JSON.stringify(standalone, null, 2));
+
 console.log(`\nartifacts written to ${outDir}`);
 console.log(`ABIs written to ${abiDir}`);
+console.log(`verification input written, ${Object.keys(standalone.sources).length} sources, bytecode matches`);

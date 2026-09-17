@@ -13,7 +13,8 @@
     "preflight": "node preflight.mjs",
     "deploy": "node deploy.mjs",
     "pack": "node pack.mjs",
-    "deploy-router": "node deploy-router.mjs"
+    "deploy-router": "node deploy-router.mjs",
+    "verify": "node verify.mjs"
   },
   "license": "MIT",
   "dependencies": {

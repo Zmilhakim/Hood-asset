@@ -21,6 +21,7 @@ npm run preflight # everything that can be checked before any gas is spent
 npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 npm run deploy-router  # the contract the site trades through, after packing
+npm run verify    # publish the source, so the seal can be read
 ```
 
 ## What packing does
@@ -278,6 +279,30 @@ constants Uniswap publishes, and one test checks that the pool id and price
 
 The EVM has to be Cancun or later: v4 keeps its lock and its deltas in transient
 storage.
+
+## Publishing the source
+
+`npm run verify` sends every deployed contract's source to Blockscout. It
+spends no gas and needs no key — verification is a claim about source code,
+checked by recompiling it, and the chain is not touched.
+
+Run it straight after deploying, because it is not a nicety. The claim this
+whole project rests on is that `CrateSeal` has no function that removes
+liquidity, and an explorer showing only bytecode turns that into something
+people have to take on trust at exactly the moment they are deciding whether
+to.
+
+One detail that makes it work. solc resolves imports by calling back, so the
+input `compile.mjs` hands it holds only our own files — an explorer given that
+would fail on the first OpenZeppelin import. So the callback records what it
+answered, `compile.mjs` writes a standalone input with all 57 sources inlined,
+and then **recompiles it with no callback and checks the bytecode is identical**
+before saving. A verification input that compiles differently is rejected on
+submission, which is a slow and confusing way to find out.
+
+Constructor arguments are supplied rather than guessed at: `CrateSeal` and
+`CrateToken` were deployed by another contract, so there is no creation
+transaction for an explorer to recover them from.
 
 ## Not deployed
 

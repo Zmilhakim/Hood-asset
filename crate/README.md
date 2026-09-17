@@ -8,6 +8,7 @@ One crate on Robinhood Chain. Packed once, sealed once. Nobody opens it.
 ```
 contracts/   the token, the Uniswap v4 pool it opens, and the seal that holds it shut
 site/        the page people buy on
+brand/       the social card, rendered from source rather than kept as a file
 ```
 
 $CRATE is one fixed supply of 1,000,000,000, minted and put into a single
