@@ -11,6 +11,7 @@
     "wallets": "node new-wallets.mjs",
     "whoami": "node whoami.mjs",
     "preflight": "node preflight.mjs",
+    "status": "node status.mjs",
     "deploy": "node deploy.mjs",
     "pack": "node pack.mjs",
     "deploy-router": "node deploy-router.mjs",

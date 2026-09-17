@@ -26,6 +26,7 @@ npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 npm run deploy-router  # the contract the site trades through, after packing
 npm run verify    # publish the source, so the seal can be read
+npm run status    # what the chain says about the pool, right now
 ```
 
 ## What packing does
@@ -288,6 +289,30 @@ constants Uniswap publishes, and one test checks that the pool id and price
 
 The EVM has to be Cancun or later: v4 keeps its lock and its deltas in transient
 storage.
+
+## Reading the pool
+
+`npm run status` asks the pool manager what it holds: the price, what the whole
+supply is worth at it, the ETH that has gone into the crate, and how much CRATE
+is still on the shelf. It signs nothing and needs no key.
+
+It exists because every other answer about a live pool comes from somewhere that
+might be wrong — an explorer that has not indexed a new v4 pool, a Telegram bot
+reading an aggregator that does not cover this chain, or a screenshot from an
+hour ago. The manager is the only thing that cannot be out of date about its own
+pool.
+
+Two figures are worth knowing how to read. **ETH in the pool starts at zero and
+that is correct**: the crate opens with its whole range below spot, so the
+position is entirely CRATE until somebody buys. And **a pair that no aggregator
+lists is usually a pair that has never traded** — most of them create the listing
+on the first swap rather than when the pool is created, so a token can be real,
+priced and tradeable while showing up nowhere. `status.mjs` says which of the two
+situations you are in rather than leaving it to be guessed from a bot's silence.
+
+It rebuilds the pool key from the config and checks it against the id the packer
+recorded, so a config that has drifted is an error rather than a page of figures
+about the wrong pool.
 
 ## Publishing the source
 
