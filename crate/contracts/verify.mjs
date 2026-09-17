@@ -47,6 +47,25 @@ const BROWSER_HEADERS = {
 const isChallenge = (status, text) =>
   status === 403 && /just a moment|cloudflare|cf-browser-verification|challenge/i.test(text);
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Blockscout rate-limits, and four submissions with polling between them is
+ * enough to trip it. A 429 is not a failure, it is the server asking for a
+ * pause — so pause, and ask again, for longer each time.
+ */
+async function withBackoff(attempt, label) {
+  for (let tries = 0; tries < 6; tries += 1) {
+    const result = await attempt();
+    if (result.status !== 429) return result;
+
+    const wait = 5_000 * 2 ** tries;
+    console.log(`         ${label}: rate limited, waiting ${wait / 1000}s`);
+    await sleep(wait);
+  }
+  return { status: 429, text: "rate limited after six attempts" };
+}
+
 let input;
 try {
   input = readFileSync(join(here, "out", "solc-input.json"), "utf8");
@@ -128,10 +147,17 @@ async function verify(contract) {
   body.append("files[0]", new Blob([input], { type: "application/json" }), "solc-input.json");
 
   const url = `${explorer}/api/v2/smart-contracts/${contract.address}/verification/via/standard-input`;
-  const response = await fetch(url, { method: "POST", body, headers: BROWSER_HEADERS });
-  const text = await response.text();
+
+  const { status, text, ok } = await withBackoff(async () => {
+    const r = await fetch(url, { method: "POST", body, headers: BROWSER_HEADERS });
+    return { status: r.status, text: await r.text(), ok: r.ok };
+  }, contract.name);
+
+  const response = { ok, status };
 
   if (response.ok) return { ok: true, message: "submitted" };
+
+  if (status === 429) return { ok: false, message: "still rate limited — re-run in a few minutes" };
 
   // Already-verified is a success as far as anyone reading the explorer cares.
   if (/already verified/i.test(text)) return { ok: true, message: "already verified" };
@@ -162,7 +188,13 @@ console.log("");
 let failures = 0;
 let blocked = 0;
 
+let first = true;
 for (const contract of CONTRACTS) {
+  // A gap between submissions, because the limit is on the account rather than
+  // on any one contract.
+  if (!first) await sleep(4000);
+  first = false;
+
   if (!contract.address) {
     console.log(`  skip   ${contract.name.padEnd(13)} not deployed yet`);
     continue;
@@ -188,8 +220,8 @@ for (const contract of CONTRACTS) {
   // Blockscout compiles in the background, so a submission is not yet an
   // answer. Wait for one rather than reporting a job as a result.
   let verified = false;
-  for (let attempt = 0; attempt < 15 && !verified; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 4000));
+  for (let attempt = 0; attempt < 10 && !verified; attempt += 1) {
+    await sleep(6000);
     verified = await isVerified(contract);
   }
 
