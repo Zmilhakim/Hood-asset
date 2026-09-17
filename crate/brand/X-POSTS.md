@@ -15,8 +15,12 @@ recorded in `../contracts/crate.config.json`. Copy it from here rather than
 retyping it: a CA one character out is a different token, and on a launch post
 that is the mistake that cannot be taken back.
 
-    CA     0x1be2723C92F0ead9f2494C6D211aA33D4551326C
-    seal   0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
+    token     0x1be2723C92F0ead9f2494C6D211aA33D4551326C
+    seal      0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
+    router    0x3080e7B4514754479F2bfd03b34f2b3d33ba598F
+    packer    0x418Dc283213d251C945d97EBcc0E4b918E868eff
+    deployer  0xDC693F2Df63fFE651b4ab8c943A0382747693d59
+    treasury  0xdE008B8597ca2612c02a02Fb97C27011e159EA83
 
 ## Before posting
 
@@ -162,7 +166,25 @@ robinhoodchain.blockscout.com/address/0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
 ```
 None. The supply was minted straight into the pool in the same transaction — it never sat in a wallet.
 
-I earn the 1% trading fee, paid to an address fixed in the contract. That is all of it.
+I earn the 1% trading fee, paid to this address, fixed in the contract before the token existed:
+0xdE008B8597ca2612c02a02Fb97C27011e159EA83
+```
+
+**"how do I know you aren't holding a bag?"**
+```
+The wallet that deployed it:
+0xDC693F2Df63fFE651b4ab8c943A0382747693d59
+
+It holds no CRATE and never has. The supply was minted straight to the contract that owns the pool position, inside the packing transaction — it never passed through a wallet.
+```
+
+**"what are the contract addresses?"**
+```
+token  0x1be2723C92F0ead9f2494C6D211aA33D4551326C
+seal   0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc
+router 0x3080e7B4514754479F2bfd03b34f2b3d33ba598F
+
+The seal is the one worth reading. It owns the pool position and has no function that removes liquidity.
 ```
 
 **"why isn't it on DexScreener?"**
