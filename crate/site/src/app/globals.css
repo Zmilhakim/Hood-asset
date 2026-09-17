@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+/*
+ * The crate, in colour: kraft board, stencilled ink, one red seal. Everything
+ * here is a token so dark mode is a redefinition rather than a second design —
+ * the same crate, seen in a darker warehouse.
+ */
+:root {
+  --paper: #e9dcc3;
+  --paper-deep: #ddcdad;
+  --card: #f2e8d5;
+  --ink: #1b1512;
+  --ink-soft: #6a5c4d;
+  --wood: #a87c4c;
+  --seal: #a8392b;
+  --line: rgb(27 21 18 / 14%);
+  --line-strong: rgb(27 21 18 / 26%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 45%), 0 10px 30px -18px rgb(27 21 18 / 55%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15110e;
+    --paper-deep: #1d1713;
+    --card: #221b15;
+    --ink: #ece0ca;
+    --ink-soft: #9d8c77;
+    --wood: #8a6539;
+    --seal: #c9503f;
+    --line: rgb(236 224 202 / 13%);
+    --line-strong: rgb(236 224 202 / 24%);
+    --shadow: 0 1px 0 rgb(255 255 255 / 5%), 0 10px 30px -18px rgb(0 0 0 / 80%);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #15110e;
+  --paper-deep: #1d1713;
+  --card: #221b15;
+  --ink: #ece0ca;
+  --ink-soft: #9d8c77;
+  --wood: #8a6539;
+  --seal: #c9503f;
+  --line: rgb(236 224 202 / 13%);
+  --line-strong: rgb(236 224 202 / 24%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 5%), 0 10px 30px -18px rgb(0 0 0 / 80%);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-wood: var(--wood);
+  --color-seal: var(--seal);
+  --color-line: var(--line);
+  --font-stencil: var(--font-oswald), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-stack), ui-monospace, SFMono-Regular, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Planks. Barely there on purpose: at full strength they read as stray
+     horizontal rules cutting through the text rather than as a crate. */
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 96px,
+    color-mix(in srgb, var(--ink) 4%, transparent) 96px 97px
+  );
+  overflow-x: hidden;
+}
+
+.stencil {
+  font-family: var(--font-stencil);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The panel everything sits in: a board with a routed edge. */
+.board {
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+}
+
+/* A wax seal. Small, and the only saturated thing on the page. */
+.seal-dot {
+  background: var(--seal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 22%, transparent);
+}
+
+input[type="text"],
+input[type="number"] {
+  font-family: var(--font-mono);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
