@@ -55,9 +55,34 @@ The liquidity did not move, and cannot. Collecting fees is the one thing that
 can leave the locker.
 ```
 
+## 3. The lock
+
+A standalone post, for after the launch has been announced. It answers the
+question the announcement raises rather than repeating it: every launchpad
+says the liquidity is locked, so why believe this one.
+
+Goes out with `brand/out/lock-1600x900.png`, which prints the locker's whole
+function list beside the ones it does not have.
+
+```
+Every launchpad says the liquidity is locked.
+
+Most mean a contract that could release it, owned by someone promising not to.
+
+Hoodpad's locker has six functions and none of them move a position. Not disabled. Absent. There is no key, because no lock was ever fitted.
+```
+
+Two alternates, both true, both weaker right now:
+
+- *"Someone traded $HPAD, so the mechanism got tested rather than described…"* —
+  accurate, but the volume behind it is a few dollars. A reader who checks will
+  find the claim thin. Worth posting once the figures carry it.
+- *"Posting a token on Hoodpad costs nothing…"* — sells the board rather than
+  giving anyone a reason to trust it. Better as a third post than a second.
+
 ---
 
-## 3. Thread
+## 4. Thread
 
 ### 1/
 
@@ -153,6 +178,7 @@ Check what it holds. That is the claim.
 | Pinned | 235 |
 | $HPAD | 278 |
 | Follow-up | 276 |
+| The lock | 267 |
 | Thread 1/ | 258 |
 | Thread 2/ | 247 |
 | Thread 3/ | 228 |

@@ -12,6 +12,8 @@ import { createRequire } from "node:module";
 
 import { cowlSvg, lockupSvg, wordmarkSvg, PALETTE } from "./lib/marks.mjs";
 
+const { positionLockerAbi } = await import(join(dirname(fileURLToPath(import.meta.url)), "..", "hoodpad", "src", "lib", "abi", "positionLocker.ts"));
+
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const { chromium } = require("playwright");
@@ -41,6 +43,24 @@ export const BRAND = {
  * quoting it back differently. Everything else on the card is a figure that
  * can be verified at that address.
  */
+/**
+ * The lock card states what the locker can and cannot do. Both lists are taken
+ * from the compiled ABI rather than typed here, and the absent ones are
+ * asserted to be absent — a card claiming a function does not exist is worth
+ * exactly as much as the check behind it.
+ */
+const LOCKER_ADDRESS = "0x645588B3468cdC18f599651aE7c98869011899CE";
+const LOCKER_FUNCTIONS = positionLockerAbi
+  .filter((entry) => entry.type === "function")
+  .map((entry) => entry.name)
+  .sort();
+
+const MUST_BE_ABSENT = ["transfer", "safeTransferFrom", "withdraw", "decreaseLiquidity", "approve", "burn"];
+const present = MUST_BE_ABSENT.filter((name) => LOCKER_FUNCTIONS.includes(name));
+if (present.length > 0) {
+  throw new Error(`the locker now has ${present.join(", ")} — the lock card would be a lie`);
+}
+
 export const LAUNCH = {
   notice: 1,
   name: "Hoodpad",
@@ -257,6 +277,54 @@ const launchCard = `<!doctype html><html><head><meta charset="utf-8">${FONTS}<st
   </div>
 </body></html>`;
 
+
+const lockCard = `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>${BASE}
+  body { width: 1600px; height: 900px; overflow: hidden; background: ${PALETTE.ground}; }
+  .stripes {
+    width: 1600px; height: 900px; padding: 54px;
+    background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .03) 0 1px, transparent 1px 8px);
+  }
+  .panel { width: 100%; height: 100%; border: 4px solid ${PALETTE.ink}; box-shadow: 14px 14px 0 ${PALETTE.groundDeep}; display: flex; flex-direction: column; }
+  .fn { font-size: 30px; font-weight: 600; padding: 11px 0; }
+  .gone { font-size: 29px; font-weight: 600; color: ${PALETTE.inkSoft}; opacity: .55; text-decoration: line-through; padding: 11px 0; }
+</style></head><body>
+  <div class="stripes">
+    <div class="panel paper">
+      <div style="display:flex;justify-content:space-between;background:${PALETTE.ink};color:${PALETTE.paper};padding:14px 32px;font-size:17px;letter-spacing:.18em">
+        <span>POSITIONLOCKER &mdash; THE WHOLE CONTRACT</span>
+        <span>${BRAND.chain}</span>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;gap:56px;padding:34px 46px">
+        <div style="flex:1;min-width:0">
+          <div class="micro" style="font-size:16px">EVERY FUNCTION IT HAS</div>
+          <div style="margin-top:12px">
+            ${LOCKER_FUNCTIONS.map((name) => `<div class="fn">${name}</div>`).join("")}
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;border-left:3px dashed rgb(33 23 14 / .22);padding-left:52px">
+          <div class="micro" style="font-size:16px">WHAT IS NOT IN IT</div>
+          <div style="margin-top:12px">
+            ${MUST_BE_ABSENT.map((name) => `<div class="gone">${name}</div>`).join("")}
+          </div>
+          <div style="margin-top:22px;font-size:20px;line-height:1.5;color:${PALETTE.inkSoft};max-width:30ch">
+            Not disabled. Not timelocked. Absent. Nothing in here can move a position.
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:22px 46px;border-top:4px solid ${PALETTE.ink};background:${PALETTE.paperDeep}">
+        <div class="micro" style="font-size:15px">HOLDS EVERY LAUNCH&rsquo;S LIQUIDITY, FOREVER</div>
+        <div style="margin-top:8px;font-size:28px;font-weight:600">${LOCKER_ADDRESS}</div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+          <span class="micro" style="font-size:15px;color:${PALETTE.ink};font-weight:600">${BRAND.site}</span>
+          <span class="micro" style="font-size:15px">${BRAND.promise}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body></html>`;
+
 // --- vector marks -----------------------------------------------------------
 writeFileSync(join(out, "logo-mark.svg"), cowlSvg({ size: 512 }));
 writeFileSync(join(out, "logo-wordmark.svg"), wordmarkSvg({ unit: 12 }));
@@ -294,6 +362,7 @@ for (const { name, html, size, faces } of [
   { name: "banner-1500x500", html: banner, size: { width: 1500, height: 500 }, faces: ["IBM Plex Mono"] },
   { name: "og-1200x630", html: og, size: { width: 1200, height: 630 }, faces: ["Rye", "IBM Plex Mono"] },
   { name: "launch-1600x900", html: launchCard, size: { width: 1600, height: 900 }, faces: ["Rye", "IBM Plex Mono"] },
+  { name: "lock-1600x900", html: lockCard, size: { width: 1600, height: 900 }, faces: ["Rye", "IBM Plex Mono"] },
 ]) {
   // Written to disk and opened over file:// — setContent leaves the base URL at
   // about:blank, where the Google Fonts <link> is never fetched at all and the
