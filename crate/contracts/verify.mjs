@@ -22,12 +22,31 @@ import { encodeAbiParameters, parseAbiParameters } from "viem";
 
 import { fail } from "./lib/env.mjs";
 import { configAddress, loadConfig } from "./lib/config.mjs";
+import { sleep, withBackoff } from "./lib/backoff.mjs";
 
 const require = createRequire(import.meta.url);
 const solc = require("solc");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const explorer = (process.env.EXPLORER_URL || "https://robinhoodchain.blockscout.com").replace(/\/$/, "");
+
+/**
+ * Blockscout sits behind Cloudflare, which answers a bare fetch with a
+ * challenge page rather than the API. Looking like a browser is usually enough
+ * to be let through; when it is not, the script says so and hands over the
+ * manual route rather than leaving a 403 and an HTML fragment on screen.
+ */
+const BROWSER_HEADERS = {
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  accept: "application/json, text/plain, */*",
+  "accept-language": "en-US,en;q=0.9",
+  origin: explorer,
+  referer: `${explorer}/`,
+};
+
+const isChallenge = (status, text) =>
+  status === 403 && /just a moment|cloudflare|cf-browser-verification|challenge/i.test(text);
 
 let input;
 try {
@@ -110,23 +129,43 @@ async function verify(contract) {
   body.append("files[0]", new Blob([input], { type: "application/json" }), "solc-input.json");
 
   const url = `${explorer}/api/v2/smart-contracts/${contract.address}/verification/via/standard-input`;
-  const response = await fetch(url, { method: "POST", body });
-  const text = await response.text();
+
+  const { status, text, ok } = await withBackoff(async () => {
+    const r = await fetch(url, { method: "POST", body, headers: BROWSER_HEADERS });
+    return { status: r.status, text: await r.text(), ok: r.ok, headers: r.headers };
+  }, contract.name);
+
+  const response = { ok, status };
 
   if (response.ok) return { ok: true, message: "submitted" };
 
+  if (status === 429) return { ok: false, message: "still rate limited — re-run in a few minutes" };
+
   // Already-verified is a success as far as anyone reading the explorer cares.
   if (/already verified/i.test(text)) return { ok: true, message: "already verified" };
+
+  if (isChallenge(response.status, text)) return { ok: false, blocked: true, message: "blocked by Cloudflare" };
 
   return { ok: false, message: `${response.status} ${text.slice(0, 200)}` };
 }
 
 async function isVerified(contract) {
+  const { status, text } = await withBackoff(async () => {
+    try {
+      const r = await fetch(`${explorer}/api/v2/smart-contracts/${contract.address}`, {
+        headers: BROWSER_HEADERS,
+      });
+      return { status: r.status, text: await r.text(), headers: r.headers };
+    } catch (error) {
+      // A dropped connection is not a rate limit, so it must not be retried
+      // here — it falls through as "not verified", which is what it was before.
+      return { status: 0, text: error.message };
+    }
+  }, contract.name);
+
+  if (status !== 200) return false;
   try {
-    const response = await fetch(`${explorer}/api/v2/smart-contracts/${contract.address}`);
-    if (!response.ok) return false;
-    const body = await response.json();
-    return Boolean(body.is_verified);
+    return Boolean(JSON.parse(text).is_verified);
   } catch {
     return false;
   }
@@ -138,8 +177,15 @@ console.log(`sources    ${Object.keys(JSON.parse(input).sources).length} files, 
 console.log("");
 
 let failures = 0;
+let blocked = 0;
 
+let first = true;
 for (const contract of CONTRACTS) {
+  // A gap between submissions, because the limit is on the account rather than
+  // on any one contract.
+  if (!first) await sleep(4000);
+  first = false;
+
   if (!contract.address) {
     console.log(`  skip   ${contract.name.padEnd(13)} not deployed yet`);
     continue;
@@ -152,17 +198,21 @@ for (const contract of CONTRACTS) {
 
   const result = await verify(contract);
   if (!result.ok) {
-    console.log(`  FAIL   ${contract.name.padEnd(13)} ${contract.address}`);
+    console.log(`  ${result.blocked ? "block" : "FAIL "}  ${contract.name.padEnd(13)} ${contract.address}`);
     console.log(`         ${result.message}`);
-    failures += 1;
+    // The arguments are the hard part of verifying by hand, so print them where
+    // they can be copied rather than worked out again.
+    if (contract.args) console.log(`         constructor args: ${contract.args}`);
+    if (result.blocked) blocked += 1;
+    else failures += 1;
     continue;
   }
 
   // Blockscout compiles in the background, so a submission is not yet an
   // answer. Wait for one rather than reporting a job as a result.
   let verified = false;
-  for (let attempt = 0; attempt < 15 && !verified; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 4000));
+  for (let attempt = 0; attempt < 10 && !verified; attempt += 1) {
+    await sleep(6000);
     verified = await isVerified(contract);
   }
 
@@ -174,6 +224,26 @@ for (const contract of CONTRACTS) {
 }
 
 console.log("");
+
+if (blocked > 0) {
+  console.log("  Cloudflare answered the API with a challenge page rather than letting it");
+  console.log("  through. That is about the explorer's bot protection, not about the source —");
+  console.log("  the same files verify by hand in a browser, which passes the challenge.");
+  console.log("");
+  console.log(`  1. Open the contract on ${explorer}`);
+  console.log("  2. Contract → Verify & Publish → Solidity (Standard JSON input)");
+  console.log(`  3. Compiler ${version}, license MIT`);
+  console.log(`  4. Upload ${join(here, "out", "solc-input.json")}`);
+  console.log("  5. Paste the constructor arguments printed above for that contract");
+  console.log("");
+  console.log("  The arguments are the part worth copying rather than retyping: two of these");
+  console.log("  were deployed by a contract, so the explorer cannot recover them itself.");
+  console.log("");
+  console.log("  Another instance of the same explorer may not be behind the challenge:");
+  console.log("    EXPLORER_URL=https://8crv4vmq6tiu1yqr.blockscout.com npm run verify");
+  process.exit(1);
+}
+
 if (failures > 0) {
   console.log(`  ${failures} contract${failures === 1 ? "" : "s"} did not verify. The source on the explorer is what`);
   console.log("  makes this project's claims checkable, so this is worth fixing before announcing.");

@@ -11,6 +11,10 @@ Foundry, no network access needed.
 | `CrateSeal`   | Owns the liquidity forever. Pays the trading fees to one fixed address.      |
 | `CrateRouter` | Buys and sells $CRATE. Trades one pool, holds nothing, has no owner.         |
 
+Compile first, always. `out/` is built rather than committed, so a fresh
+checkout — or one that predates a contract — has nothing for the deploy scripts
+to read.
+
 ```bash
 npm install
 npm run compile   # writes out/, PoolManager included
@@ -22,6 +26,7 @@ npm run deploy    # puts CratePacker on chain
 npm run pack      # pulls the lever, once — prints the plan first
 npm run deploy-router  # the contract the site trades through, after packing
 npm run verify    # publish the source, so the seal can be read
+npm run status    # what the chain says about the pool, right now
 ```
 
 ## What packing does
@@ -231,6 +236,11 @@ npm run pack               # prints the plan and still sends nothing
 CONFIRM=pack npm run pack  # sends it
 ```
 
+**Do not chain these with `&&`.** A dry run is a success, so `npm run pack`
+exits 0 without sending anything and the next command in the chain runs against
+a crate that was never packed. Each step is its own command on purpose: the
+plan is printed so somebody reads it.
+
 ### The curve this launch uses
 
 `floorEth` 2, `ceilEth` 200 — the supply opens at a 2 ETH valuation and the range
@@ -280,6 +290,30 @@ constants Uniswap publishes, and one test checks that the pool id and price
 The EVM has to be Cancun or later: v4 keeps its lock and its deltas in transient
 storage.
 
+## Reading the pool
+
+`npm run status` asks the pool manager what it holds: the price, what the whole
+supply is worth at it, the ETH that has gone into the crate, and how much CRATE
+is still on the shelf. It signs nothing and needs no key.
+
+It exists because every other answer about a live pool comes from somewhere that
+might be wrong — an explorer that has not indexed a new v4 pool, a Telegram bot
+reading an aggregator that does not cover this chain, or a screenshot from an
+hour ago. The manager is the only thing that cannot be out of date about its own
+pool.
+
+Two figures are worth knowing how to read. **ETH in the pool starts at zero and
+that is correct**: the crate opens with its whole range below spot, so the
+position is entirely CRATE until somebody buys. And **a pair that no aggregator
+lists is usually a pair that has never traded** — most of them create the listing
+on the first swap rather than when the pool is created, so a token can be real,
+priced and tradeable while showing up nowhere. `status.mjs` says which of the two
+situations you are in rather than leaving it to be guessed from a bot's silence.
+
+It rebuilds the pool key from the config and checks it against the id the packer
+recorded, so a config that has drifted is an error rather than a page of figures
+about the wrong pool.
+
 ## Publishing the source
 
 `npm run verify` sends every deployed contract's source to Blockscout. It
@@ -304,11 +338,28 @@ Constructor arguments are supplied rather than guessed at: `CrateSeal` and
 `CrateToken` were deployed by another contract, so there is no creation
 transaction for an explorer to recover them from.
 
-## Not deployed
+Blockscout's public instance rate-limits, and four contracts — a status read,
+a submission and then polling until each one compiles — is more than it allows.
+A 429 is the server asking for a pause rather than refusing, so every call to
+the explorer goes through `lib/backoff.mjs`: it waits as long as `Retry-After`
+asks, or five seconds doubling to two minutes when the server does not say.
+Reads go through it too, which is the part worth knowing — a rate-limited read
+of the status endpoint answers "not verified", which is indistinguishable from
+a contract that is still compiling.
 
-Nothing here is on chain yet, and none of it is audited. `deploy.mjs` and
-`pack.mjs` check what they can before spending gas — that the RPC really is
+Re-running is safe and is the right response to anything left unverified:
+already-verified contracts are skipped after one read, so a second run picks up
+where the first was cut off.
+
+## Deployed
+
+CRATE is packed. The addresses are in `crate.config.json` under `deployed`, and
+the crate cannot be packed a second time — `pack.mjs` refuses, and so does the
+packer itself.
+
+None of it is audited. What the scripts do instead is check what can be checked
+before spending gas: `deploy.mjs` and `pack.mjs` confirm the RPC really is
 Robinhood Chain (4663), that the pool manager answers like one, that the crate is
-not already packed, that the key signing is the one the packer answers to — and
-`pack.mjs` simulates the whole transaction against the node before it will
+not already packed, and that the key signing is the one the packer answers to —
+and `pack.mjs` simulates the whole transaction against the node before it will
 broadcast.

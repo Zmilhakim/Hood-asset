@@ -151,3 +151,51 @@ export function launchRange({ floorEthPerToken, ceilEthPerToken, tickSpacing }) 
 
   return { tickLower, tickUpper, sqrtPriceX96: getSqrtPriceAtTick(tickUpper), currentTick: tickUpper };
 }
+
+/**
+ * What a position actually holds right now, in the two currencies.
+ *
+ * Liquidity is an abstraction; these are not. `eth` is the money that has gone
+ * into the crate and cannot come out, and `tokens` is what is still on the
+ * shelf — the two figures worth putting in front of anyone.
+ *
+ * The crate opens with the price above its whole range, which is the same thing
+ * as saying the position is all CRATE and holds no ETH at all. So `eth` of zero
+ * is not an error state: it means nobody has bought yet.
+ *
+ *   amount0 = L · (1/√P − 1/√Pb)      the ETH side
+ *   amount1 = L · (√P − √Pa)          the token side
+ *
+ * both in Q96 arithmetic, with √P clamped into the range — outside it the
+ * position is entirely one currency, and that clamping is the whole of the
+ * special-casing.
+ */
+export function amountsInPosition(liquidity, sqrtPriceX96, tickLower, tickUpper) {
+  if (liquidity === 0n || sqrtPriceX96 === 0n) return { eth: 0n, tokens: 0n };
+  if (tickLower >= tickUpper) throw new RangeError(`tickLower ${tickLower} is not below tickUpper ${tickUpper}`);
+
+  const sqrtA = getSqrtPriceAtTick(tickLower);
+  const sqrtB = getSqrtPriceAtTick(tickUpper);
+  const sqrtP = sqrtPriceX96 < sqrtA ? sqrtA : sqrtPriceX96 > sqrtB ? sqrtB : sqrtPriceX96;
+
+  return {
+    eth: sqrtP >= sqrtB ? 0n : (liquidity * Q96 * (sqrtB - sqrtP)) / (sqrtP * sqrtB),
+    tokens: sqrtP <= sqrtA ? 0n : (liquidity * (sqrtP - sqrtA)) / Q96,
+  };
+}
+
+/**
+ * What one whole token is worth in wei, from the pool's own price.
+ *
+ * A v4 pool prices currency1 in currency0, and native ETH is address zero and
+ * therefore always currency0 — so what the pool quotes is CRATE per ETH, and
+ * the price anyone actually wants is its reciprocal. Getting that backwards
+ * produces a number that looks plausible and is wrong by a factor of 10^18,
+ * which is exactly the kind of figure that ends up in a screenshot.
+ *
+ * Both currencies have 18 decimals, so nothing needs scaling between them.
+ */
+export function ethPerTokenFromSqrtPrice(sqrtPriceX96) {
+  if (sqrtPriceX96 <= 0n) throw new RangeError("a pool with no price has no price per token");
+  return (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96);
+}

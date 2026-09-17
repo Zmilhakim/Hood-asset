@@ -15,21 +15,45 @@ import { fileURLToPath } from "node:url";
 
 import { createWalletClient, formatEther, getContractAddress, http, parseEventLogs } from "viem";
 
-import { checkPoolManager, connect, fail, requireAddress, requireDeployerKey, requireEnv } from "./lib/env.mjs";
+import { checkPoolManager, connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
+import { configAddress, configNumber, configPrice, loadConfig, recordDeployed } from "./lib/config.mjs";
 import { cratePoolKey, poolId, readSlot0 } from "./lib/pool.mjs";
 import { launchRange, pricePerToken } from "./lib/ticks.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const abi = JSON.parse(readFileSync(join(here, "out", "CratePacker.json"), "utf8")).abi;
+/** The compiled contract, or the one instruction that fixes its absence. */
+function readArtifact(name) {
+  try {
+    return JSON.parse(readFileSync(join(here, "out", `${name}.json`), "utf8"));
+  } catch {
+    fail(
+      `out/${name}.json is not there, so there is nothing to deploy.`,
+      "",
+      "Run `npm run compile` first. out/ is built rather than committed, and a",
+      "checkout that predates a contract will not have it.",
+    );
+  }
+}
 
-requireEnv(["DEPLOYER_KEY", "PACKER", "FLOOR_ETH", "CEIL_ETH"]);
-const packerAddress = requireAddress("PACKER");
+const abi = readArtifact("CratePacker").abi;
 
-const fee = Number(process.env.FEE ?? 10_000);
-if (!Number.isInteger(fee) || fee <= 0 || fee > 1_000_000) fail(`FEE is not an LP fee: ${process.env.FEE}`);
+requireEnv(["DEPLOYER_KEY"]);
 
-const tickSpacing = Number(process.env.TICK_SPACING ?? 200);
-if (!Number.isInteger(tickSpacing) || tickSpacing <= 0) fail(`TICK_SPACING is not a spacing: ${process.env.TICK_SPACING}`);
+const config = loadConfig();
+const packerAddress = configAddress(config, "deployed.packer", "PACKER", {
+  what: "the CratePacker to pack; `npm run deploy` writes it here",
+});
+
+const fee = configNumber(config, "launch.fee", "FEE", 10_000);
+if (fee > 1_000_000) fail(`launch.fee is above the cap: ${fee}`);
+const tickSpacing = configNumber(config, "launch.tickSpacing", "TICK_SPACING", 200);
+
+const floorEth = configPrice(config, "launch.floorEth", "FLOOR_ETH", {
+  what: "what the whole supply is worth where selling starts",
+});
+const ceilEth = configPrice(config, "launch.ceilEth", "CEIL_ETH", {
+  what: "what the whole supply is worth at the far end of the range",
+});
 
 const account = requireDeployerKey();
 const { chain, publicClient } = await connect();

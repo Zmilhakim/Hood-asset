@@ -11,9 +11,9 @@
     "ceilEth": "200"
   },
   "deployed": {
-    "packer": "",
-    "seal": "",
-    "token": "",
-    "router": ""
+    "packer": "0x418Dc283213d251C945d97EBcc0E4b918E868eff",
+    "seal": "0xfbBEE6923f4EF4F324b36673167e136c1Fbc3ebc",
+    "token": "0x1be2723C92F0ead9f2494C6D211aA33D4551326C",
+    "router": "0x3080e7B4514754479F2bfd03b34f2b3d33ba598F"
   }
 }

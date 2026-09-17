@@ -17,7 +17,21 @@ import { connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
 import { configAddress, loadConfig, recordDeployed } from "./lib/config.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const artifact = JSON.parse(readFileSync(join(here, "out", "CrateRouter.json"), "utf8"));
+/** The compiled contract, or the one instruction that fixes its absence. */
+function readArtifact(name) {
+  try {
+    return JSON.parse(readFileSync(join(here, "out", `${name}.json`), "utf8"));
+  } catch {
+    fail(
+      `out/${name}.json is not there, so there is nothing to deploy.`,
+      "",
+      "Run `npm run compile` first. out/ is built rather than committed, and a",
+      "checkout that predates a contract will not have it.",
+    );
+  }
+}
+
+const artifact = readArtifact("CrateRouter");
 
 requireEnv(["DEPLOYER_KEY"]);
 
