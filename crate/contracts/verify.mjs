@@ -22,6 +22,7 @@ import { encodeAbiParameters, parseAbiParameters } from "viem";
 
 import { fail } from "./lib/env.mjs";
 import { configAddress, loadConfig } from "./lib/config.mjs";
+import { sleep, withBackoff } from "./lib/backoff.mjs";
 
 const require = createRequire(import.meta.url);
 const solc = require("solc");
@@ -46,25 +47,6 @@ const BROWSER_HEADERS = {
 
 const isChallenge = (status, text) =>
   status === 403 && /just a moment|cloudflare|cf-browser-verification|challenge/i.test(text);
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Blockscout rate-limits, and four submissions with polling between them is
- * enough to trip it. A 429 is not a failure, it is the server asking for a
- * pause — so pause, and ask again, for longer each time.
- */
-async function withBackoff(attempt, label) {
-  for (let tries = 0; tries < 6; tries += 1) {
-    const result = await attempt();
-    if (result.status !== 429) return result;
-
-    const wait = 5_000 * 2 ** tries;
-    console.log(`         ${label}: rate limited, waiting ${wait / 1000}s`);
-    await sleep(wait);
-  }
-  return { status: 429, text: "rate limited after six attempts" };
-}
 
 let input;
 try {
@@ -150,7 +132,7 @@ async function verify(contract) {
 
   const { status, text, ok } = await withBackoff(async () => {
     const r = await fetch(url, { method: "POST", body, headers: BROWSER_HEADERS });
-    return { status: r.status, text: await r.text(), ok: r.ok };
+    return { status: r.status, text: await r.text(), ok: r.ok, headers: r.headers };
   }, contract.name);
 
   const response = { ok, status };
@@ -168,13 +150,22 @@ async function verify(contract) {
 }
 
 async function isVerified(contract) {
+  const { status, text } = await withBackoff(async () => {
+    try {
+      const r = await fetch(`${explorer}/api/v2/smart-contracts/${contract.address}`, {
+        headers: BROWSER_HEADERS,
+      });
+      return { status: r.status, text: await r.text(), headers: r.headers };
+    } catch (error) {
+      // A dropped connection is not a rate limit, so it must not be retried
+      // here — it falls through as "not verified", which is what it was before.
+      return { status: 0, text: error.message };
+    }
+  }, contract.name);
+
+  if (status !== 200) return false;
   try {
-    const response = await fetch(`${explorer}/api/v2/smart-contracts/${contract.address}`, {
-      headers: BROWSER_HEADERS,
-    });
-    if (!response.ok) return false;
-    const body = await response.json();
-    return Boolean(body.is_verified);
+    return Boolean(JSON.parse(text).is_verified);
   } catch {
     return false;
   }

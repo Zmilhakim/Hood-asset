@@ -313,11 +313,28 @@ Constructor arguments are supplied rather than guessed at: `CrateSeal` and
 `CrateToken` were deployed by another contract, so there is no creation
 transaction for an explorer to recover them from.
 
-## Not deployed
+Blockscout's public instance rate-limits, and four contracts — a status read,
+a submission and then polling until each one compiles — is more than it allows.
+A 429 is the server asking for a pause rather than refusing, so every call to
+the explorer goes through `lib/backoff.mjs`: it waits as long as `Retry-After`
+asks, or five seconds doubling to two minutes when the server does not say.
+Reads go through it too, which is the part worth knowing — a rate-limited read
+of the status endpoint answers "not verified", which is indistinguishable from
+a contract that is still compiling.
 
-Nothing here is on chain yet, and none of it is audited. `deploy.mjs` and
-`pack.mjs` check what they can before spending gas — that the RPC really is
+Re-running is safe and is the right response to anything left unverified:
+already-verified contracts are skipped after one read, so a second run picks up
+where the first was cut off.
+
+## Deployed
+
+CRATE is packed. The addresses are in `crate.config.json` under `deployed`, and
+the crate cannot be packed a second time — `pack.mjs` refuses, and so does the
+packer itself.
+
+None of it is audited. What the scripts do instead is check what can be checked
+before spending gas: `deploy.mjs` and `pack.mjs` confirm the RPC really is
 Robinhood Chain (4663), that the pool manager answers like one, that the crate is
-not already packed, that the key signing is the one the packer answers to — and
-`pack.mjs` simulates the whole transaction against the node before it will
+not already packed, and that the key signing is the one the packer answers to —
+and `pack.mjs` simulates the whole transaction against the node before it will
 broadcast.
