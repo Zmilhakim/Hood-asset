@@ -32,6 +32,28 @@ export const BRAND = {
   tagline: "PLAIN TOOLS FOR LAUNCHING ON ROBINHOOD CHAIN",
   line: "Post a notice, open a pool, keep the fees. Every figure read straight from the chain.",
 };
+
+/**
+ * $HPAD's own launch, for the card that goes on the announcement post.
+ *
+ * The address is the whole point of the image: a post carrying a contract
+ * address as pixels is one a reader can check, and one nobody can alter by
+ * quoting it back differently. Everything else on the card is a figure that
+ * can be verified at that address.
+ */
+export const LAUNCH = {
+  notice: 1,
+  name: "Hoodpad",
+  ticker: "$HPAD",
+  token: "0xA3B16698b0dff316dC3214Ab5C2D31DeBcB03096",
+  poster: "0xA5E1d280EF25B5CD0768deBBaEa2Ee9e0ae56E81",
+  rows: [
+    ["Supply", "1,000,000,000"],
+    ["In the pool", "All of it"],
+    ["Liquidity", "Locked, permanently"],
+    ["Team holds", "Nothing"],
+  ],
+};
 // ---------------------------------------------------------------------------
 
 mkdirSync(out, { recursive: true });
@@ -188,6 +210,53 @@ const og = `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>${BA
   </div>
 </body></html>`;
 
+
+const launchCard = `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>${BASE}
+  body { width: 1600px; height: 900px; overflow: hidden; background: ${PALETTE.ground}; }
+  .stripes {
+    width: 1600px; height: 900px; padding: 54px;
+    background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .03) 0 1px, transparent 1px 8px);
+  }
+  .panel { width: 100%; height: 100%; border: 4px solid ${PALETTE.ink}; box-shadow: 14px 14px 0 ${PALETTE.groundDeep}; display: flex; flex-direction: column; }
+  .lrow { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; padding: 15px 0; border-bottom: 2px solid rgb(33 23 14 / .14); }
+  .lrow:last-child { border-bottom: 0; }
+  .lrow span { font-size: 20px; letter-spacing: .1em; text-transform: uppercase; color: ${PALETTE.inkSoft}; }
+  .lrow b { font-size: 27px; font-weight: 600; }
+</style></head><body>
+  <div class="stripes">
+    <div class="panel paper">
+      <div style="display:flex;justify-content:space-between;background:${PALETTE.ink};color:${PALETTE.paper};padding:14px 32px;font-size:17px;letter-spacing:.18em">
+        <span>NOTICE NO. ${String(LAUNCH.notice).padStart(4, "0")}</span>
+        <span>${BRAND.chain}</span>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;align-items:center;gap:52px;padding:34px 46px">
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:20px">
+          ${cowlSvg({ size: 210 })}
+          <div style="font-family:'Rye',serif;font-size:56px;line-height:1">${LAUNCH.ticker}</div>
+          <div class="micro" style="font-size:17px">${LAUNCH.name}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          ${LAUNCH.rows.map(([k, v]) => `<div class="lrow"><span>${k}</span><b>${v}</b></div>`).join("")}
+        </div>
+      </div>
+
+      <div style="padding:24px 46px;border-top:4px solid ${PALETTE.ink};background:${PALETTE.paperDeep}">
+        <div class="micro" style="font-size:15px">TOKEN CONTRACT</div>
+        <div style="margin-top:7px;font-size:28px;font-weight:600;letter-spacing:.01em">${LAUNCH.token}</div>
+
+        <div class="micro" style="margin-top:18px;font-size:15px">POSTED BY &mdash; HOLDS NONE OF IT</div>
+        <div style="margin-top:7px;font-size:28px;font-weight:600;letter-spacing:.01em;color:${PALETTE.inkSoft}">${LAUNCH.poster}</div>
+
+        <div style="margin-top:18px;padding-top:16px;border-top:2px solid rgb(33 23 14 / .18);display:flex;justify-content:space-between;align-items:center">
+          <span class="micro" style="font-size:15px;color:${PALETTE.ink};font-weight:600">${BRAND.site}</span>
+          <span class="micro" style="font-size:15px">${BRAND.promise}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body></html>`;
+
 // --- vector marks -----------------------------------------------------------
 writeFileSync(join(out, "logo-mark.svg"), cowlSvg({ size: 512 }));
 writeFileSync(join(out, "logo-wordmark.svg"), wordmarkSvg({ unit: 12 }));
@@ -205,13 +274,26 @@ const avatar = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" widt
 await sharp(Buffer.from(avatar)).png().toFile(join(out, "avatar-1000.png"));
 
 // --- typography-heavy pieces ------------------------------------------------
-const browser = await chromium.launch();
+// Playwright insists on the exact Chromium build its version pins, and an
+// environment that ships a different one has a working browser sitting right
+// there. Use it rather than downloading a second copy, but only when the
+// pinned build is genuinely absent.
+const pinned = chromium.executablePath();
+const fallback = process.env.PLAYWRIGHT_BROWSERS_PATH
+  ? join(process.env.PLAYWRIGHT_BROWSERS_PATH, "chromium")
+  : null;
+const executablePath = existsSync(pinned) || !fallback || !existsSync(fallback) ? undefined : fallback;
+
+if (executablePath) console.log(`using the environment's chromium at ${executablePath}`);
+
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const tmp = join(out, ".render");
 mkdirSync(tmp, { recursive: true });
 
 for (const { name, html, size, faces } of [
   { name: "banner-1500x500", html: banner, size: { width: 1500, height: 500 }, faces: ["IBM Plex Mono"] },
   { name: "og-1200x630", html: og, size: { width: 1200, height: 630 }, faces: ["Rye", "IBM Plex Mono"] },
+  { name: "launch-1600x900", html: launchCard, size: { width: 1600, height: 900 }, faces: ["Rye", "IBM Plex Mono"] },
 ]) {
   // Written to disk and opened over file:// — setContent leaves the base URL at
   // about:blank, where the Google Fonts <link> is never fetched at all and the

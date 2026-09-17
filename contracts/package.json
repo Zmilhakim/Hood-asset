@@ -9,6 +9,8 @@
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test test/*.test.mjs",
     "deploy": "node deploy.mjs",
     "launch": "node launch.mjs",
+    "status": "node status.mjs",
+    "collect": "node collect.mjs",
     "node": "node tools/local-node.mjs",
     "wallet": "node new-wallet.mjs"
   },

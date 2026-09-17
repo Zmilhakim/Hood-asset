@@ -25,10 +25,11 @@ hoodpad.site
 Post this second, quoting or replying to the pinned post.
 
 ```
-$HPAD went through Hoodpad like everything else on the board.
+$HPAD went through Hoodpad like everything on the board.
 
-1,000,000,000 supply, all of it in the pool
+1,000,000,000 minted, all of it into the pool
 LP locked, permanently
+Nothing held back
 
 token
 0xA3B16698b0dff316dC3214Ab5C2D31DeBcB03096
@@ -36,7 +37,22 @@ token
 posted by
 0xA5E1d280EF25B5CD0768deBBaEa2Ee9e0ae56E81
 
-That second one holds none of it.
+Notice #1. Read it yourself.
+```
+
+### Follow-up, once it has traded
+
+Only true after a trade. The figures come from `status.mjs`; replace them with
+whatever it reports rather than these.
+
+```
+The first trades went through $HPAD's pool.
+
+The 1% they paid did not go to Hoodpad. It went to the wallet that posted the
+notice, which is the only thing a poster ever keeps.
+
+The liquidity did not move, and cannot. Collecting fees is the one thing that
+can leave the locker.
 ```
 
 ---
@@ -135,7 +151,8 @@ Check what it holds. That is the claim.
 | Post | Characters |
 | --- | --- |
 | Pinned | 235 |
-| $HPAD | 268 |
+| $HPAD | 278 |
+| Follow-up | 276 |
 | Thread 1/ | 258 |
 | Thread 2/ | 247 |
 | Thread 3/ | 228 |

@@ -17,6 +17,8 @@ import {
   LOCKER_ARTIFACT,
   POSITION_MANAGER,
   POSTER,
+  STRANGER,
+  SWAP_ROUTER,
   TICK_SPACING,
   TOKEN_ARTIFACT,
   UNISWAP_V3_POOL,
@@ -231,4 +233,100 @@ test("the locker is handed the position and has nowhere to send it", async () =>
   // Re-locking someone else's position id is not a way back in either.
   const relock = await venue.tryCall(venue.locker, LOCKER_ARTIFACT.abi, "lock", [positionId, poster]);
   assert.equal(relock.reverted, true, "anyone can call lock");
+});
+
+test("a buy moves the price and the fee reaches the poster", async () => {
+  // The site promises two things about a locked position that only a trade can
+  // settle: that the pool is tradeable at all, and that the 1% it charges ends
+  // up with whoever posted the notice rather than with the board.
+  const venue = await bootVenue();
+  const target = await saltFor(venue, false);
+
+  const { outcome } = await launch(venue, target);
+  assert.equal(outcome.reverted, false, outcome.reason ?? "");
+  const [id, token, positionId] = outcome.decode();
+
+  const notice = await venue.read(venue.hoodpad, FACTORY_ARTIFACT.abi, "noticeAt", [id]);
+  const before = await venue.read(notice.pool, UNISWAP_V3_POOL.abi, "slot0");
+
+  const router = await venue.deploy(SWAP_ROUTER, "address, address", [venue.dexFactory, venue.weth]);
+
+  const spend = 10n ** 17n; // 0.1 ETH
+  const wethAbi = [
+    { type: "function", name: "deposit", inputs: [], outputs: [], stateMutability: "payable" },
+    {
+      type: "function",
+      name: "approve",
+      inputs: [{ type: "address" }, { type: "uint256" }],
+      outputs: [{ type: "bool" }],
+      stateMutability: "nonpayable",
+    },
+  ];
+
+  await venue.call(venue.weth, wethAbi, "deposit", [], { caller: STRANGER, value: spend });
+  await venue.call(venue.weth, wethAbi, "approve", [router, spend], { caller: STRANGER });
+
+  const buy = await venue.tryCall(
+    router,
+    SWAP_ROUTER.abi,
+    "exactInputSingle",
+    [
+      {
+        tokenIn: venue.weth,
+        tokenOut: token,
+        fee: FEE_TIER,
+        recipient: getAddress(STRANGER.toString()),
+        deadline: 2n ** 48n,
+        amountIn: spend,
+        amountOutMinimum: 0n,
+        sqrtPriceLimitX96: 0n,
+      },
+    ],
+    { caller: STRANGER },
+  );
+
+  assert.equal(buy.reverted, false, `the pool could not be bought from: ${buy.reason}`);
+
+  const bought = await venue.read(token, TOKEN_ARTIFACT.abi, "balanceOf", [getAddress(STRANGER.toString())]);
+  assert.ok(bought > 0n, "the buy returned no tokens");
+
+  // Price moved up: the buyer took tokens out, so the pool holds fewer.
+  const after = await venue.read(notice.pool, UNISWAP_V3_POOL.abi, "slot0");
+  assert.notEqual(after[0], before[0], "the price did not move");
+  assert.equal(
+    await venue.read(token, TOKEN_ARTIFACT.abi, "balanceOf", [notice.pool]),
+    (await venue.read(token, TOKEN_ARTIFACT.abi, "totalSupply")) - bought,
+    "the pool did not give up exactly what the buyer received",
+  );
+
+  // The fee is the poster's, and nobody else's.
+  const stranger = await venue.tryCall(venue.locker, LOCKER_ARTIFACT.abi, "collectFees", [positionId], {
+    caller: STRANGER,
+  });
+  assert.equal(stranger.reverted, true, "a stranger could collect the poster's fees");
+
+  const collected = await venue.call(venue.locker, LOCKER_ARTIFACT.abi, "collectFees", [positionId]);
+  const [amount0, amount1] = collected.decode();
+  const wethFees = venue.weth.toLowerCase() < token.toLowerCase() ? amount0 : amount1;
+
+  // A 1% tier on a 0.1 ETH buy. Uniswap tracks fees as growth per unit of
+  // liquidity in Q128 and truncates on the way back out, so the figure lands a
+  // wei or two under the round number rather than on it — never over.
+  const tier = spend / 100n;
+  assert.ok(wethFees > 0n, "the trade earned no fee");
+  assert.ok(
+    wethFees <= tier && tier - wethFees <= 10n,
+    `the fee should be 1% of ${spend} give or take rounding, got ${wethFees}`,
+  );
+
+  // Collecting is the one thing that may leave the locker, and it must not take
+  // the position with it.
+  assert.equal(
+    await venue.read(venue.positionManager, POSITION_MANAGER.abi, "ownerOf", [positionId]),
+    venue.locker,
+    "collecting fees moved the position",
+  );
+
+  const position = await venue.read(venue.positionManager, POSITION_MANAGER.abi, "positions", [positionId]);
+  assert.ok(position[7] > 0n, "collecting fees drained the liquidity");
 });

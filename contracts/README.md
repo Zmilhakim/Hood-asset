@@ -15,6 +15,8 @@ npm run compile   # writes out/ and regenerates the app's ABIs
 npm test          # compiles first, then runs the invariants and a full launch
 npm run deploy    # see deploy.mjs for the env vars it needs
 npm run launch    # post one token through a deployed board
+npm run status    # read the board: prices, supply left, unclaimed fees
+npm run collect   # sweep a locked position's trading fees to its poster
 npm run node      # a local chain to rehearse against
 ```
 
@@ -42,6 +44,46 @@ Without `--go` nothing is sent: the script prints the address the token will
 land on, the range, and what the gas will cost, then stops. The salt is
 regenerated on every run, so the address changes between a rehearsal and the
 real thing.
+
+## Reading the board
+
+`status.mjs` reports what the board looks like right now. It needs no private
+key and sends nothing — every figure comes off the chain.
+
+```bash
+node status.mjs            # every notice, newest first
+node status.mjs 1          # one notice by id
+WATCH=0x… node status.mjs  # also report that wallet's gas and fees
+```
+
+For each notice it prints the token and pool addresses, the current price and
+market cap in ETH, how much of the supply is still unsold, how much WETH the
+pool has taken in, and the trading fees the poster has not collected yet.
+
+Unclaimed fees are read by simulating the collect the beneficiary would send,
+not by reading `tokensOwed` off the position. Those two disagree: `tokensOwed`
+only updates when the position is touched, so a pool that has been trading
+quietly reports zero until someone pokes it.
+
+## Collecting fees
+
+The dashboard on the site does this, but it needs a browser with an injected
+wallet — which on a phone means opening the site inside a wallet's own browser.
+`collect.mjs` needs a terminal and the key that is already in it.
+
+```bash
+export DEPLOYER_KEY=0x…     # the poster's account; nobody else may collect
+
+node collect.mjs 1          # show what notice #1 would pay out, send nothing
+node collect.mjs 1 --go     # collect it
+```
+
+It refuses early and says why when the key belongs to someone other than the
+poster, rather than letting the locker's revert explain it. Collecting never
+touches the position: the liquidity stays locked, and the test suite checks
+that the locker still owns it afterwards.
+
+WETH comes back wrapped. Unwrap it in a wallet if plain ETH is wanted.
 
 ### Rehearsing without a chain
 
