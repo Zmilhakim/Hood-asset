@@ -25,12 +25,17 @@ npm run lint
 
 ## It tells the truth about whether there is anything to buy
 
-`NEXT_PUBLIC_TOKEN_ADDRESS` and `NEXT_PUBLIC_ROUTER_ADDRESS` are both optional.
-Without them the page renders a panel saying the crate is not packed yet, rather
-than a swap box that could only fail. Set them after `npm run pack` and
-`npm run deploy-router` in `../contracts`, and the same page becomes a working
-one. Every figure it then shows is read from the pool manager — none of it is
-estimated here.
+The crate is packed, so the token, router and packer addresses live in
+`src/lib/addresses.ts` — the same file as the fee tier, and as permanent. The
+page therefore trades by default, and every figure on it is read from the pool
+manager rather than estimated here.
+
+They were build-time variables until the launch, and that was the right shape
+while the addresses did not exist yet. It is the wrong shape afterwards: a
+deployment that forgets a variable does not fail, it builds a page telling
+visitors the token does not exist. The variables still override the file, for a
+fork or a test chain, and `NEXT_PUBLIC_TOKEN_ADDRESS=none` is how the
+pre-launch panel is asked for deliberately.
 
 ## How a trade actually happens
 
@@ -79,8 +84,10 @@ the build starts at the repository root, finds no `package.json`, and fails.
 `vercel.json` inside this directory pins the Next.js preset, so nothing else
 needs setting by hand.
 
-`NEXT_PUBLIC_TOKEN_ADDRESS`, `NEXT_PUBLIC_ROUTER_ADDRESS` and
-`NEXT_PUBLIC_PACKER_ADDRESS` go in the project's environment variables after the
-crate is packed. They are read at build time, so setting them means a redeploy —
-which is the point of having the site up beforehand: at launch it is a variable
-change and a redeploy, not a build from nothing.
+No environment variables are needed. The addresses are in the repository, so a
+fresh clone deploys a working page and a forgotten dashboard setting cannot
+produce one that says the token was never launched.
+
+Production builds from `main`. Vercel skips a build when a commit touches
+nothing under the Root Directory, so a contracts-only commit will not appear
+here — that is expected, not a broken hook.
