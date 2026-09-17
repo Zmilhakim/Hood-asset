@@ -9,7 +9,7 @@
 // Why this exists at all: a link posted to X is scraped once, when the post is
 // made. A card missing at that moment is missing for the life of the post, and
 // cannot be added afterwards.
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -19,6 +19,30 @@ const { chromium } = require("playwright");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "..", "site", "public");
+const posts = join(here, "out");
+
+/**
+ * The seal's entire external surface, taken from the compiled ABI rather than
+ * typed out.
+ *
+ * The card built from this says "none of these removes liquidity", which is
+ * the strongest thing the project claims. Typing the list by hand would mean
+ * the picture could stay reassuring while the contract changed underneath it —
+ * so it is generated, and `npm run compile` has to have run first.
+ */
+function sealSurface() {
+  const abi = JSON.parse(readFileSync(join(here, "..", "contracts", "out", "CrateSeal.json"), "utf8")).abi;
+  const functions = abi.filter((entry) => entry.type === "function").map((entry) => entry.name);
+
+  const removes = functions.filter((name) =>
+    /remove|decrease|withdraw|transfer|rescue|sweep|recover|burn/i.test(name),
+  );
+  if (removes.length > 0) {
+    throw new Error(`the seal now has ${removes.join(", ")} — the card would be a lie, fix the contract or the card`);
+  }
+
+  return functions.sort();
+}
 
 // --- the things you would change -------------------------------------------
 export const BRAND = {
@@ -160,6 +184,7 @@ const card = (fontCss) => `<!doctype html>
 </body></html>`;
 
 mkdirSync(out, { recursive: true });
+mkdirSync(posts, { recursive: true });
 
 const fontCss = await inlineFonts();
 
@@ -181,6 +206,81 @@ const usedStencil = await page.evaluate(() => document.fonts.check('900 118px "B
 if (!usedStencil) throw new Error("the stencil font did not load — the card would render in a fallback face");
 
 await page.screenshot({ path: join(out, "og.png") });
-await browser.close();
-
 console.log(`written ${join(out, "og.png")} — 1200x630`);
+
+// --- the cards attached to posts -------------------------------------------
+//
+// 1600x900 rather than 1200x630: a link preview is cropped to 1.91:1 by X, but
+// an attached image is shown at 16:9, and a card designed for one looks
+// short-changed as the other.
+
+const shell = (body, extra = "") => `<!doctype html>
+<html><head><meta charset="utf-8"><style>${fontCss}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    width:1600px;height:900px;overflow:hidden;position:relative;
+    font-family:"Courier Prime",monospace;color:${PALETTE.ink};
+    background-color:${PALETTE.pine};
+    background-image:
+      repeating-linear-gradient(to bottom, transparent 0 148px, rgba(43,29,16,.88) 148px 156px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='244'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.002 0.061475' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.70 0 0 0 0 0.52 0 0 0 0 0.31 0 0 0 2.2 -0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  }
+  .paint{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.06' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.55 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");}
+  .st{font-family:"Big Shoulders Stencil";font-weight:900;text-transform:uppercase;line-height:.9;letter-spacing:.03em}
+  .sheet{position:absolute;inset:64px;background:${PALETTE.manila};padding:56px 60px;
+    box-shadow:0 3px 0 ${PALETTE.manilaEdge},0 20px 40px rgba(42,26,12,.45);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0.28 0 0 0 0.45 -0.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");}
+  .clip{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:150px;height:40px;border-radius:7px 7px 4px 4px;
+    background:linear-gradient(to bottom,#9aa1a4,#5b6164);border:3px solid #3E4345}
+  .foot{position:absolute;left:60px;right:60px;bottom:44px;display:flex;justify-content:space-between;align-items:center;
+    font-weight:700;font-size:20px;letter-spacing:.08em;border-top:3px solid ${PALETTE.ink};padding-top:16px}
+  ${extra}
+</style></head><body>${body}</body></html>`;
+
+const cards = {
+  "post-seal": shell(
+    `<div class="sheet"><span class="clip"></span>
+      <h1 class="st" style="font-size:78px">Everything CrateSeal can do</h1>
+      <p style="font-size:24px;margin:18px 0 26px;max-width:46em">Its entire external surface, taken from the compiled contract. Read the list, then look for the one that takes the liquidity back out.</p>
+      <ul class="fns">${sealSurface().map((fn) => `<li><code>${fn}</code></li>`).join("")}</ul>
+      <p class="verdict st">There isn't one.</p>
+      <div class="foot"><span>${BRAND.site}</span><span>${BRAND.ticker} · ${BRAND.chain}</span></div>
+    </div>`,
+    `.fns{list-style:none;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 40px;max-width:1100px}
+     .fns li{font-size:27px;font-weight:700;padding:9px 0;border-bottom:2px dotted ${PALETTE.rule}}
+     .fns code{font-family:"Courier Prime",monospace}
+     .verdict{position:absolute;right:60px;bottom:96px;font-size:76px;color:${PALETTE.red};transform:rotate(-3deg)}`,
+  ),
+
+  "post-supply": shell(
+    `<div class="sheet"><span class="clip"></span>
+      <h1 class="st" style="font-size:78px">Where the supply went</h1>
+      <div class="bars">
+        <div class="row"><span class="k">Into the pool</span><span class="bar"><i style="width:100%"></i></span><span class="v">100%</span></div>
+        <div class="row"><span class="k">Team</span><span class="bar"></span><span class="v">0%</span></div>
+        <div class="row"><span class="k">Reserve</span><span class="bar"></span><span class="v">0%</span></div>
+        <div class="row"><span class="k">Unlock later</span><span class="bar"></span><span class="v">None</span></div>
+      </div>
+      <p style="font-size:26px;margin-top:34px;max-width:44em;font-weight:700">All 1,000,000,000 went in inside one transaction. It never sat in a wallet, so there was never a moment it could have been kept.</p>
+      <div class="foot"><span>${BRAND.site}</span><span>${BRAND.ticker} · ${BRAND.chain}</span></div>
+    </div>`,
+    `.bars{margin-top:38px;display:grid;gap:22px;max-width:1240px}
+     .row{display:grid;grid-template-columns:280px 1fr 140px;align-items:center;gap:26px}
+     .k{font-size:29px;font-weight:700}
+     .bar{height:44px;border:3px solid ${PALETTE.ink};background:${PALETTE.manilaEdge}}
+     .bar i{display:block;height:100%;background:${PALETTE.red}}
+     .v{font-family:"Big Shoulders Stencil";font-weight:900;font-size:48px;text-align:right}`,
+  ),
+};
+
+for (const [name, html] of Object.entries(cards)) {
+  const sheet = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
+  await sheet.setContent(html, { waitUntil: "networkidle" });
+  await sheet.evaluate(() => document.fonts.ready);
+  await sheet.waitForTimeout(300);
+  await sheet.screenshot({ path: join(posts, `${name}.png`) });
+  await sheet.close();
+  console.log(`written ${join(posts, `${name}.png`)} — 1600x900`);
+}
+
+await browser.close();
