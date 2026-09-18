@@ -41,6 +41,30 @@ number to argue with before deploying rather than after: `FEE_BPS` is a constant
 in `HoodFeeHook`, the hook is part of every pool's key, and a pool's key cannot
 be changed. Nothing about that 5% is adjustable once a notice is posted.
 
+### How high the hook could go, and why it stops there
+
+**100% of the swap's unspecified side, and not one basis point more.** Uniswap
+does not enforce that — `Hooks.afterSwap` subtracts whatever `int128` a hook
+returns from the swapper's delta, with no ceiling anywhere in v4-core. The limit
+is arithmetic rather than a rule, and it is a cliff:
+
+| Hook fee | What happens |
+| --- | --- |
+| under 100% | the swap works; the trader keeps the rest |
+| exactly 100% | the swap succeeds and the trader receives **nothing** |
+| over 100% | the swapper's side goes negative, and **every swap reverts** |
+
+The last row is unrecoverable. A pool's hook is part of its key, so a pool opened
+against a hook charging 101% can never be traded again by anyone. `MAX_FEE_BPS`
+and the check in the hook's constructor exist for exactly that: it is the one
+edit to that file that would compile, deploy, launch, and only then brick every
+pool it touched.
+
+None of which makes a high fee a good one. The pool's own LP fee has its own cap
+— `LPFeeLibrary.MAX_LP_FEE` is 1,000,000 hundredths of a bip, also 100% — so the
+protocol would happily let a launch charge 200% across the two and simply stop
+working. Routers and aggregators give up long before that.
+
 The two fees also arrive in different currencies, which surprises people:
 
 - The hook takes its cut from the swap's *unspecified* side — the output of an

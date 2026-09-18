@@ -63,6 +63,27 @@ contract HoodFeeHook is BaseHook {
 
     uint256 internal constant BPS_DENOMINATOR = 10_000;
 
+    /// @notice The highest cut a v4 hook can take at all: the whole unspecified
+    /// side of the swap.
+    ///
+    /// Uniswap does not enforce this. `Hooks.afterSwap` takes whatever int128 a
+    /// hook returns and subtracts it from the swapper's delta, with no ceiling
+    /// anywhere — so the limit is not a rule, it is arithmetic, and it is a
+    /// cliff rather than a slope:
+    ///
+    ///   below 100%  the swap works and the trader keeps the rest;
+    ///   at 100%     the swap succeeds and the trader receives nothing at all;
+    ///   above 100%  the subtraction flips the swapper's side negative, they
+    ///               end up owing a currency they were meant to receive, and
+    ///               every swap reverts.
+    ///
+    /// That last case cannot be repaired. A pool's hook is part of its key, so a
+    /// pool opened against a hook charging 101% is a pool nobody can ever trade
+    /// again — not the poster, not the board, not Uniswap. Hence the check in
+    /// the constructor: the mistake is caught at deployment, where it costs gas,
+    /// rather than at the first swap, where it costs the launch.
+    uint256 public constant MAX_FEE_BPS = BPS_DENOMINATOR;
+
     /// @notice The board that may register pools here. Set in the constructor,
     /// and the factory deploys this hook itself, so the two are married at birth.
     address public immutable factory;
@@ -75,6 +96,7 @@ contract HoodFeeHook is BaseHook {
     mapping(PoolId poolId => mapping(Currency currency => uint256 amount)) public owed;
 
     error AlreadyRegistered();
+    error FeeTooHigh();
     error NotFactory();
     error NothingToClaim();
     error PayoutFailed();
@@ -90,6 +112,11 @@ contract HoodFeeHook is BaseHook {
     /// that mines the wrong address fails here, at deployment, rather than on the
     /// first swap of the first launch.
     constructor(IPoolManager poolManager_) BaseHook(poolManager_) {
+        // Constant today, and deliberately still checked: this is the one edit to
+        // this file that would compile, deploy, launch, and then brick every pool
+        // it ever touched.
+        if (FEE_BPS > MAX_FEE_BPS) revert FeeTooHigh();
+
         factory = msg.sender;
     }
 

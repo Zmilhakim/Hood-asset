@@ -46,6 +46,23 @@ test("the fee is a constant of 5%, with no setter anywhere", async () => {
   }
 });
 
+test("the cut sits under the ceiling that v4 does not enforce", async () => {
+  const ctx = await board();
+
+  const fee = await ctx.read(ctx.hook, hookArtifact.abi, "FEE_BPS");
+  const max = await ctx.read(ctx.hook, hookArtifact.abi, "MAX_FEE_BPS");
+
+  // 100% of the unspecified side. Uniswap checks nothing here — `Hooks.afterSwap`
+  // subtracts whatever the hook returns from the swapper's delta — so a fee above
+  // this does not fail loudly, it flips the swapper's side negative and every
+  // swap in the pool reverts. A pool's hook is part of its key, so that is
+  // permanent. This asserts the constant rather than the arithmetic, because the
+  // arithmetic is Uniswap's and the constant is the thing an edit could break.
+  assert.equal(max, 10_000n, "the ceiling is not 100% of the unspecified side");
+  assert.ok(fee <= max, `the hook charges ${fee} bps, above the ${max} bps ceiling`);
+  assert.equal(fee, HOOK_FEE_BPS);
+});
+
 test("buying pays the fee in the token, and it is 5% of what the pool paid out", async () => {
   const ctx = await board();
   const { key, token, poolId } = await post(ctx);

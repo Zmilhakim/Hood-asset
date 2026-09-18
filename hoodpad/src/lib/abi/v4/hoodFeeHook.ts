@@ -18,6 +18,11 @@ export const hoodFeeHookAbi = [
   },
   {
     "inputs": [],
+    "name": "FeeTooHigh",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "HookNotImplemented",
     "type": "error"
   },
@@ -130,6 +135,19 @@ export const hoodFeeHookAbi = [
   {
     "inputs": [],
     "name": "FEE_BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_FEE_BPS",
     "outputs": [
       {
         "internalType": "uint256",
