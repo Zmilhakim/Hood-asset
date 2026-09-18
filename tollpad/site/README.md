@@ -65,9 +65,26 @@ pictures and links that whoever launched a token put there. A picture is only
 ever rendered as an image and a creator's link carries `nofollow`, which is as
 far as a launchpad can honestly go.
 
-## Deploying
+## Deployed
 
-Vercel, framework preset Next.js, root directory `tollpad/site`. Set
-`NEXT_PUBLIC_FACTORY_ADDRESS` in the project's environment variables, and
-`NEXT_PUBLIC_RPC_URL` before it sees any real traffic — the default endpoint is
-Robinhood's public one and is rate-limited for wallets, not for a site.
+Live at **https://tollpad.vercel.app**, from `main`.
+
+| | |
+| --- | --- |
+| Vercel project | `tollpad`, in `zmilhakim-4557` |
+| Root directory | `tollpad/site` |
+| Production branch | `main` — every push deploys |
+| Protection | Vercel Authentication on previews only; production is public |
+
+What is still unset, on purpose: `NEXT_PUBLIC_FACTORY_ADDRESS`. There are no
+contracts on Robinhood Chain yet, so the live site says so on every page. Deploy
+them with `npm run deploy` in `../contracts`, set the variable in the project's
+environment, and redeploy — the pages turn on with no code change.
+
+Set `NEXT_PUBLIC_RPC_URL` before this sees any real traffic. The default endpoint
+is Robinhood's public one and is rate-limited for wallets, not for a site.
+
+There is no custom domain. `SITE_URL` follows `VERCEL_PROJECT_PRODUCTION_URL` by
+itself, so the OG tags already point at `tollpad.vercel.app` and will follow a
+domain the moment one is attached — set `NEXT_PUBLIC_SITE_URL` only if it ever
+needs to differ from the production URL Vercel knows about.
