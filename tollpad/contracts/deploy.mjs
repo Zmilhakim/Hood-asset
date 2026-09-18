@@ -70,6 +70,23 @@ if (treasury.toLowerCase() === account.address.toLowerCase()) {
   console.log("           key that signs deploys is a poor place to accumulate fees.");
 }
 
+// The toll is pulled, not pushed: the treasury is paid by calling `withdraw` on
+// the hook, from the treasury itself. An address that cannot make that call can
+// never be paid, and by then the address is immutable.
+const treasuryCode = await publicClient.getCode({ address: treasury });
+if (treasuryCode && treasuryCode !== "0x") {
+  console.log("");
+  console.log("           warning: the treasury is a contract, not an ordinary account.");
+  console.log("           It is paid by calling withdraw() on the hook — from itself —");
+  console.log("           and it has to accept native ETH. A smart account that can do");
+  console.log("           both is fine. Anything that cannot is a treasury that can");
+  console.log("           never be paid, and this is immutable from here on.");
+  console.log("");
+  if (process.env.CONFIRM !== "deploy") {
+    fail("Re-run with CONFIRM=deploy if that address really can call withdraw.");
+  }
+}
+
 const wallet = createWalletClient({ account, chain, transport: http() });
 const hash = await wallet.deployContract({
   abi: factoryArtifact.abi,
