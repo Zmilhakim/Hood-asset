@@ -5,6 +5,17 @@ import { DeploymentNotice } from "@/components/board/DeploymentNotice";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { ROBINHOOD_CHAIN_ID } from "@/lib/chain";
+import { clsx } from "@/lib/clsx";
+
+/** The hero's figures. `wide` takes a whole row where a half one is too narrow. */
+const FACTS: Array<[label: string, value: string, wide: boolean]> = [
+  ["Toll", "5%", false],
+  ["To the creator", "80%", false],
+  ["Pool fee", "None", false],
+  ["Liquidity", "Locked", false],
+  ["Supply", "1,000,000,000", true],
+  ["To launch", "Gas", true],
+];
 
 const STEPS = [
   {
@@ -58,17 +69,22 @@ export default function Home() {
           </div>
 
           <dl className="grid grid-cols-2 gap-px self-start border-2 border-signal/40 bg-signal/40">
-            {[
-              ["Toll", "5%"],
-              ["To the creator", "80%"],
-              ["Pool fee", "None"],
-              ["Supply", "1,000,000,000"],
-              ["Liquidity", "Locked"],
-              ["To launch", "Gas"],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-ground-soft px-4 py-3">
+            {FACTS.map(([label, value, wide]) => (
+              <div
+                key={label}
+                className={clsx(
+                  "min-w-0 bg-ground-soft px-3 py-2.5 sm:px-4 sm:py-3",
+                  // A phone's half-column is about 90px of content, and the
+                  // supply is thirteen characters of monospace. No font size
+                  // fits it there, so the long ones take a whole row instead of
+                  // spilling out of the box — a figure that leaves its cell
+                  // reads as a broken page, which is not what a launchpad wants
+                  // to be saying on the line about supply.
+                  wide && "col-span-2 sm:col-span-1",
+                )}
+              >
                 <dt className="micro text-lane-soft">{label}</dt>
-                <dd className="mt-1 text-lg font-semibold text-lane">{value}</dd>
+                <dd className="mt-1 text-lg font-semibold tabular-nums whitespace-nowrap text-lane">{value}</dd>
               </div>
             ))}
           </dl>
