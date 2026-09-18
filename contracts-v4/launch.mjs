@@ -151,7 +151,7 @@ const id = (await publicClient.readContract({ address: factory, abi: factoryArti
 const notice = await publicClient.readContract({
   address: factory,
   abi: factoryArtifact.abi,
-  functionName: "notice",
+  functionName: "noticeAt",
   args: [id],
 });
 

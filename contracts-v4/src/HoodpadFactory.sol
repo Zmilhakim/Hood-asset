@@ -250,12 +250,12 @@ contract HoodpadFactory is ReentrancyGuard {
         });
     }
 
-    function notice(uint256 id) external view returns (Notice memory) {
+    function noticeAt(uint256 id) external view returns (Notice memory) {
         return _notices[id];
     }
 
     /// @notice A page of the board, newest first.
-    function notices(uint256 offset, uint256 limit) external view returns (Notice[] memory page) {
+    function latest(uint256 offset, uint256 limit) external view returns (Notice[] memory page) {
         uint256 total = _notices.length;
         if (offset >= total) return new Notice[](0);
 

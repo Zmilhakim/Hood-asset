@@ -56,7 +56,7 @@ if (only !== undefined && BigInt(only) >= count) fail(`there are ${count} notice
 
 for (const id of ids) {
   const [notice, key] = await Promise.all([
-    read(factory, factoryArtifact.abi, "notice", [id]),
+    read(factory, factoryArtifact.abi, "noticeAt", [id]),
     read(factory, factoryArtifact.abi, "poolKeyOf", [id]),
   ]);
 

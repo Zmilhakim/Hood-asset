@@ -44,7 +44,7 @@ const count = await read(factory, factoryArtifact.abi, "tokenCount");
 if (BigInt(id) >= count) fail(`there are ${count} notices on this board; #${id} is not one of them`);
 
 const [notice, key, hook, locker] = await Promise.all([
-  read(factory, factoryArtifact.abi, "notice", [BigInt(id)]),
+  read(factory, factoryArtifact.abi, "noticeAt", [BigInt(id)]),
   read(factory, factoryArtifact.abi, "poolKeyOf", [BigInt(id)]),
   read(factory, factoryArtifact.abi, "hook"),
   read(factory, factoryArtifact.abi, "locker"),

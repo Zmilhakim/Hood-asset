@@ -158,7 +158,7 @@ export async function post(ctx, params = launchParams(), caller = POSTER, value 
   if (result.reverted) return { reverted: true };
 
   const id = (await ctx.read(ctx.factory, factoryArtifact.abi, "tokenCount")) - 1n;
-  const notice = await ctx.read(ctx.factory, factoryArtifact.abi, "notice", [id]);
+  const notice = await ctx.read(ctx.factory, factoryArtifact.abi, "noticeAt", [id]);
   const key = hoodPoolKey({ token: notice.token, fee: notice.fee, tickSpacing: notice.tickSpacing, hook: ctx.hook });
 
   return { reverted: false, id, notice, token: notice.token, key, poolId: notice.poolId };
