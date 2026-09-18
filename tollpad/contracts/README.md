@@ -16,8 +16,10 @@ has nothing for the scripts to read.
 
 ```bash
 npm install
-npm run compile   # writes out/, PoolManager included
+npm run compile   # writes out/, PoolManager included, and the site's ABIs
 npm test          # compiles, then launches a token and trades against it
+npm run wallets   # makes the two keys — on your machine, not a server
+npm run whoami    # which address does the key I stored control?
 npm run mine      # the salt the hook needs, printed before anything is spent
 npm run deploy    # puts the factory, the hook and the locker on chain
 npm run launch    # posts one token to the board — prints the plan first
@@ -148,6 +150,31 @@ people pay for supply is locked — for the creator as much as for anyone.
 A creator chooses the name, the ticker, the picture and the price range. That is
 the whole list. There is no allocation, no vesting and no cliff, because there is
 nowhere to put one.
+
+## The two keys
+
+`npm run wallets` prints them once and saves them nowhere. It refuses to run if
+stdout is not a terminal, and refuses again if the environment looks like CI or a
+hosted workspace — a key is only secret while it has existed in exactly one
+place, and a cloud shell is not that place. A phone running Termux is a fine
+place; a web IDE is not.
+
+**Deployer.** Sends one transaction and then matters almost not at all: the
+launchpad has no owner, `launch` is permissionless, and the salt for the hook is
+mined against whoever is deploying, so a different deployer is not a problem —
+only a *changed* one between mining and sending is, and `deploy.mjs` mines it
+itself to make that impossible.
+
+**Treasury.** Receives 20% of every toll, forever, and is an `immutable` in the
+hook. There is no setter under any spelling. `deploy.mjs` reads it back off the
+chain after deploying and refuses to go on if it is not the address that was
+asked for. It has to be an address that can call `withdraw` — a contract that
+cannot make that call can never be paid — and it should be a hardware wallet
+rather than a generated key, because it never signs anything else.
+
+```bash
+DEPLOYER_KEY=0x… npm run whoami     # prints the address, never the key
+```
 
 ## The launch, written down
 

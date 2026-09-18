@@ -10,7 +10,7 @@ hoodpad/     the web app: landing, board, launch form, dashboard
 contracts/   the launchpad contracts and their tests
 brand/       logo, avatar, banner and OG image, all generated from source
 crate/       CRATE: one token, one pool, one seal
-tollpad/     Tollpad: a launchpad with a 5% fee hook, and its brand kit
+tollpad/     Tollpad: a launchpad with a 5% fee hook, its app and brand kit
 *.png        the original Hood character art
 ```
 

@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  /* The ground: asphalt, at night. */
+  --color-ground: #161a21;
+  --color-ground-deep: #0b0e13;
+  --color-ground-soft: #1e232c;
+  --color-ground-lift: #262c37;
+
+  /* Signal: the yellow every barrier in the world is painted. The one colour
+     allowed to shout, and the only one that means "this costs something". */
+  --color-signal: #f5c518;
+  --color-signal-deep: #c79a04;
+
+  /* Paper and ink, for the few surfaces that are light. */
+  --color-paper: #f2efe6;
+  --color-paper-dim: #e4dfd0;
+  --color-ink: #14171d;
+  --color-ink-soft: #5b626e;
+
+  /* On the dark ground, "ink" would be invisible — these are the text tones. */
+  --color-lane: #eef1f6;
+  --color-lane-soft: #98a1af;
+  --color-lane-faint: #6b7483;
+
+  --color-rust: #c4552c;
+  --color-go: #4fb477;
+
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    /* The same faint diagonal tooth the banner is printed on. */
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.022) 0px,
+      rgb(255 255 255 / 0.022) 2px,
+      transparent 2px,
+      transparent 9px
+    );
+    color: var(--color-lane);
+    font-family: var(--font-mono);
+    margin: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-signal);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+}
+
+@utility hazard {
+  /* The barrier arm, as a rule across the top of something. */
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-signal) 0px,
+    var(--color-signal) 10px,
+    var(--color-ink) 10px,
+    var(--color-ink) 20px
+  );
+}
+
+@utility micro {
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@utility drop {
+  box-shadow: 4px 4px 0 0 var(--color-ground-deep);
+}
+
+@utility drop-sm {
+  box-shadow: 2px 2px 0 0 var(--color-ground-deep);
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility drifting {
+  animation: drift 42s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drifting {
+    animation: none;
+  }
+}
