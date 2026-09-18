@@ -31,23 +31,57 @@ not.
 
 ## Bio — max 160
 
-**Pick this** (147 characters):
+Two picks, because the account should be in one language and stay in it. A bio in
+English over a feed in Indonesian reads like a bio somebody else wrote.
+
+**English** (147 characters):
 
 ```
 Launch a token, charge a toll. 5% of every swap on Uniswap v4, 80% of it to whoever launched it. Supply all in the pool. Liquidity locked for good.
 ```
 
-Alternatives:
+**Indonesian** (138 characters):
+
+```
+Launchpad di Robinhood Chain. Satu fee: 5% tiap swap, 80%-nya buat yang nge-launch. Semua supply masuk pool, likuiditas dikunci selamanya.
+```
+
+### The rest of them
+
+English:
 
 | Count | Text |
 | --- | --- |
+| 145 | `The fee is the product. 5% of every swap, 80% of it to whoever launched the token, and the rate sits in the pool's key where nobody can raise it.` |
 | 147 | `A launchpad with one fee: 5% of every swap, 80% to the creator. Nothing held back at launch, nothing left to withdraw. Robinhood Chain, Uniswap v4.` |
 | 143 | `One hook, one fee. 5% of every swap — 80% of it to whoever launched the token. The supply goes into the pool, and the pool does not open again.` |
-| 138 | `Launchpad di Robinhood Chain. Satu fee: 5% tiap swap, 80%-nya buat yang nge-launch. Semua supply masuk pool, likuiditas dikunci selamanya.` |
+| 145 | `Launch for the price of gas. Keep 80% of a 5% toll on every swap after that. Supply fully in the pool, liquidity locked, no allocation to anyone.` |
+| 105 | `5% of every swap. 80% of it yours. The rest of the trade goes into a pool nobody can drain — us included.` |
 
-The last one is the Indonesian version, for an account that posts in Indonesian.
-Pick one language and stay in it — a bio in one and a feed in the other reads
-like a bio somebody else wrote.
+Indonesian:
+
+| Count | Text |
+| --- | --- |
+| 146 | `Launch cuma bayar gas. Habis itu tiap swap kena toll 5% — 80% buat kamu, terus-terusan. Supply masuk pool semua, likuiditasnya nggak bisa ditarik.` |
+| 144 | `Satu hook, satu fee: 5% tiap swap di Uniswap v4, 80% buat creator. Nggak ada presale, nggak ada jatah tim, nggak ada yang bisa narik likuiditas.` |
+| 141 | `Fee-nya yang jadi produk. 5% tiap swap, 80% buat yang nge-launch, dan tarifnya nempel di pool — nggak bisa dinaikin atau dimatiin belakangan.` |
+| 102 | `5% tiap swap. 80%-nya punya kamu. Sisanya masuk pool yang nggak bisa dikuras siapa pun, termasuk kami.` |
+
+### How to pick
+
+The short ones read better on a phone, where X truncates a bio to about two
+lines before anyone has to tap. The long ones say the two numbers *and* what
+happens to the liquidity, which is the question every launchpad gets asked
+second.
+
+Whichever you take, the bio makes the same two claims the contracts make — **5%**
+and **80%** — and those are checkable: `TOLL_BPS` and `CREATOR_BPS` in
+`TollHook.sol`, constants with no setter. Change one and this file is wrong, so
+change this file too.
+
+One thing to leave out of all of them: **a number nobody can check yet**. No
+"$2M locked", no "1,000 launches", no APR. Everything above is true of a
+launchpad on its first day, which is the day the bio gets written.
 
 ## Website
 
