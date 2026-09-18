@@ -1,16 +1,14 @@
 # Hood-asset
 
-Brand assets for the Hood universe, plus three things built for Robinhood Chain
-(chain id 4663): **Hoodpad**, a launchpad, ticker **$HPAD**; **CRATE**, a single
-token, ticker **$CRATE**; and **Toollpad**, a launchpad on Uniswap v4 whose pools
-charge one 5% toll, ticker **$TOLL**.
+Brand assets for the Hood universe, plus two things built for Robinhood Chain
+(chain id 4663): **Hoodpad**, a launchpad, ticker **$HPAD**, and **CRATE**, a
+single token, ticker **$CRATE**.
 
 ```
 hoodpad/     the web app: landing, board, launch form, dashboard
 contracts/   the launchpad contracts and their tests
 brand/       logo, avatar, banner and OG image, all generated from source
 crate/       CRATE: one token, one pool, one seal
-toollpad/     Toollpad: a launchpad with a 5% fee hook, its app and brand kit
 *.png        the original Hood character art
 ```
 
@@ -38,16 +36,16 @@ liquidity never is — but here it is settled at deployment rather than per noti
 the fee address is an immutable with no setter. See
 [`crate/README.md`](crate/README.md).
 
-## Toollpad
+## Toollpad lives in its own repository now
 
-The third shape, and the only one with a hook. Every pool it opens carries a
-Uniswap v4 hook that charges **5% of everything paid in**, in either direction —
-80% to whoever launched the token, 20% to the treasury — and the pool's own LP
-fee is zero, so that toll is the entire fee schedule. The supply and the lock
-work as they do on Hoodpad; what is new is that the rate belongs to the launchpad
-rather than to whichever fee tier the pool happened to be opened at, and it is
-part of the pool's key, so it cannot be changed after the fact. See
-[`toollpad/README.md`](toollpad/README.md).
+**[Zmilhakim/toollpad](https://github.com/Zmilhakim/toollpad)** — a launchpad on
+Uniswap v4 whose pools charge one 5% toll, ticker **$TOLL**. It was built here
+and moved out before anything was deployed, with its history intact.
+
+It moved because one repository feeding several Vercel projects means every push
+rebuilds all of them — seven builds for a change that touched one folder, which
+is how a day's deployment quota disappears without anything being wrong. New
+projects get their own repository from the start.
 
 Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
 [`hoodpad/README.md`](hoodpad/README.md) for running the app, and
