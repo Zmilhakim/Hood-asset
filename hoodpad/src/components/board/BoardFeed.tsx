@@ -8,11 +8,20 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Panel } from "@/components/ui/Panel";
 import { buttonClasses } from "@/components/ui/Button";
 import { useLatestNotices } from "@/lib/board";
+import { useV4Notices } from "@/lib/board-v4";
 import { BOARD_IS_OPEN } from "@/lib/contracts";
+import { V4_BOARD_IS_OPEN } from "@/lib/contracts-v4";
+import type { BoardNotice } from "@/lib/notice";
 
 export function BoardFeed() {
-  const { notices, isLoading, isError } = useLatestNotices(40);
-  const rows = notices ?? [];
+  // Both readers run and each gates its own request on its board being
+  // configured, so only one of them ever reaches the chain.
+  const v3 = useLatestNotices(40);
+  const v4 = useV4Notices(40);
+
+  const { notices, isLoading, isError } = V4_BOARD_IS_OPEN ? v4 : v3;
+  const rows: readonly BoardNotice[] = notices ?? [];
+  const boardOpen = V4_BOARD_IS_OPEN || BOARD_IS_OPEN;
 
   return (
     <div>
@@ -21,7 +30,7 @@ export function BoardFeed() {
         aside={rows.length > 0 ? <Badge tone="live">{rows.length} posted</Badge> : undefined}
         bodyClassName="p-3 sm:p-4"
       >
-        {!BOARD_IS_OPEN ? (
+        {!boardOpen ? (
           <EmptyState title="The board opens soon">
             Hoodpad is not live on Robinhood Chain yet. The first notice lands here the moment a token launches — and
             it will be read from the chain, not typed in.
@@ -48,7 +57,7 @@ export function BoardFeed() {
         ) : (
           <ul className="space-y-3">
             {rows.map((notice) => (
-              <li key={notice.id.toString()}>
+              <li key={notice.token}>
                 <NoticeCard notice={notice} />
               </li>
             ))}
@@ -56,7 +65,7 @@ export function BoardFeed() {
         )}
       </Panel>
 
-      {BOARD_IS_OPEN && rows.length > 0 && (
+      {boardOpen && rows.length > 0 && (
         <div className="mt-4 flex justify-center">
           <Link href="/launch" className={buttonClasses("quiet")}>
             Post a notice

@@ -11,6 +11,7 @@ import { Panel } from "@/components/ui/Panel";
 import { StatTile } from "@/components/ui/StatTile";
 import { NoticeImage } from "@/components/board/NoticeImage";
 import { useBoardStats } from "@/lib/board";
+import { useV4BoardStats } from "@/lib/board-v4";
 import { explorerAddress, explorerTx, ROBINHOOD_CHAIN_ID } from "@/lib/chain";
 import {
   BOARD_IS_OPEN,
@@ -19,10 +20,33 @@ import {
   LAUNCH_FEE_TIER,
   LAUNCH_TICK_SPACING,
 } from "@/lib/contracts";
+import {
+  hoodpadV4FactoryAbi,
+  V4_BOARD_IS_OPEN,
+  V4_FACTORY_ADDRESS,
+  V4_LAUNCH_FEE_TIER,
+  V4_LAUNCH_TICK_SPACING,
+} from "@/lib/contracts-v4";
 import { formatEth, shortAddress } from "@/lib/format";
 import { planLaunch } from "@/lib/pool";
+import { planV4Launch } from "@/lib/pool-v4";
 
 const SUPPLY = 1_000_000_000;
+
+/**
+ * Which board this form posts to.
+ *
+ * The v4 board is the one with the hook, so it wins wherever it is configured;
+ * the v3 board stays the fallback so an environment that has not deployed v4 yet
+ * keeps working unchanged. It is a module constant rather than state because the
+ * two boards need different reads, and a value that could flip mid-render would
+ * mean calling different hooks on different renders.
+ */
+const ON_V4 = V4_BOARD_IS_OPEN;
+const BOARD_OPEN = ON_V4 ? V4_BOARD_IS_OPEN : BOARD_IS_OPEN;
+const BOARD_ADDRESS = ON_V4 ? V4_FACTORY_ADDRESS : FACTORY_ADDRESS;
+const FEE_TIER = ON_V4 ? V4_LAUNCH_FEE_TIER : LAUNCH_FEE_TIER;
+const TICK_SPACING = ON_V4 ? V4_LAUNCH_TICK_SPACING : LAUNCH_TICK_SPACING;
 
 const read = { address: FACTORY_ADDRESS, abi: hoodpadFactoryAbi, chainId: ROBINHOOD_CHAIN_ID } as const;
 
@@ -63,37 +87,66 @@ export function LaunchForm() {
   useEffect(() => setSalt(randomSalt()), []);
 
   const { address, chainId, isConnected } = useConnection();
-  const { stats } = useBoardStats();
+
+  // Both are read, and only the configured board's is used. Each hook gates its
+  // own request on its board being open, so the other one never fires.
+  const v3Board = useBoardStats();
+  const v4Board = useV4BoardStats();
+  const postingFee = (ON_V4 ? v4Board.stats?.postingFee : v3Board.stats?.postingFee) ?? 0n;
+  const hookFeeBps = v4Board.stats?.hookFeeBps;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
   const name = draft.name.trim();
   const symbol = draft.symbol.trim().toUpperCase();
-  const ready = name.length > 0 && symbol.length > 0 && salt !== null;
+  // On v4 the salt is not part of a launch at all — see the plan below.
+  const ready = name.length > 0 && symbol.length > 0 && (ON_V4 || salt !== null);
 
-  const { data: weth } = useReadContract({ ...read, functionName: "weth", query: { enabled: BOARD_IS_OPEN } });
+  const { data: weth } = useReadContract({
+    ...read,
+    functionName: "weth",
+    query: { enabled: !ON_V4 && BOARD_IS_OPEN },
+  });
 
   const { data: predicted } = useReadContract({
     ...read,
     functionName: "predictToken",
-    args: ready ? [name, symbol, salt] : undefined,
-    query: { enabled: BOARD_IS_OPEN && ready },
+    args: ready && salt ? [name, symbol, salt] : undefined,
+    query: { enabled: !ON_V4 && BOARD_IS_OPEN && ready && salt !== null },
   });
 
   const opening = Number(draft.openingValuation);
   const ceiling = Number(draft.ceilingValuation);
 
-  // The token's address decides which side of the pool it sits on, which flips
-  // the entire tick axis — so the plan can only be built once it is known.
+  // On v3 the token's address decides which side of the pool it sits on, which
+  // flips the entire tick axis — so the plan cannot be built until the address is
+  // known. On v4 the other side is native ETH, which is address zero and so is
+  // always currency0; the token is always currency1 and there is nothing to wait
+  // for. That is why the v4 branch needs neither `predicted` nor `weth`.
   const plan = useMemo(() => {
-    if (!predicted || !weth || !(opening > 0) || !(ceiling > 0)) return null;
+    if (!(opening > 0) || !(ceiling > 0)) return null;
+
     try {
+      if (ON_V4) {
+        return {
+          value: planV4Launch({
+            openingCapEth: opening,
+            ceilingCapEth: ceiling,
+            spacing: TICK_SPACING,
+            supply: SUPPLY,
+          }),
+          error: null as string | null,
+        };
+      }
+
+      if (!predicted || !weth) return null;
+
       return {
         value: planLaunch({
           tokenIsToken0: (predicted as string).toLowerCase() < (weth as string).toLowerCase(),
           openingPrice: opening / SUPPLY,
           ceilingPrice: ceiling / SUPPLY,
-          spacing: LAUNCH_TICK_SPACING,
+          spacing: TICK_SPACING,
         }),
         error: null as string | null,
       };
@@ -106,7 +159,7 @@ export function LaunchForm() {
   const receipt = useWaitForTransactionReceipt({ hash });
 
   const wrongChain = isConnected && chainId !== ROBINHOOD_CHAIN_ID;
-  const blocker = !BOARD_IS_OPEN
+  const blocker = !BOARD_OPEN
     ? "Hoodpad is not deployed on Robinhood Chain yet."
     : !isConnected
       ? "Connect a wallet to post."
@@ -121,28 +174,44 @@ export function LaunchForm() {
               : null;
 
   const submit = () => {
-    if (blocker || !plan?.value || !salt || !FACTORY_ADDRESS) return;
+    if (blocker || !plan?.value || !BOARD_ADDRESS) return;
+
+    const metadata = {
+      name,
+      symbol,
+      imageURI: draft.imageURI.trim(),
+      blurb: draft.blurb.trim(),
+      link: draft.link.trim(),
+      sqrtPriceX96: plan.value.sqrtPriceX96,
+      tickLower: plan.value.tickLower,
+      tickUpper: plan.value.tickUpper,
+      fee: FEE_TIER,
+    };
+
+    if (ON_V4) {
+      writeContract({
+        address: BOARD_ADDRESS,
+        abi: hoodpadV4FactoryAbi,
+        functionName: "postToken",
+        chainId: ROBINHOOD_CHAIN_ID,
+        value: postingFee,
+        // No salt: v4 needs no address prediction. The tick spacing travels in
+        // the params instead, because in v4 it is part of the pool's key rather
+        // than a property of the fee tier.
+        args: [{ ...metadata, tickSpacing: TICK_SPACING }],
+      });
+      return;
+    }
+
+    if (!salt) return;
 
     writeContract({
-      address: FACTORY_ADDRESS,
+      address: BOARD_ADDRESS,
       abi: hoodpadFactoryAbi,
       functionName: "postToken",
       chainId: ROBINHOOD_CHAIN_ID,
-      value: stats?.postingFee ?? 0n,
-      args: [
-        {
-          salt,
-          name,
-          symbol,
-          imageURI: draft.imageURI.trim(),
-          blurb: draft.blurb.trim(),
-          link: draft.link.trim(),
-          sqrtPriceX96: plan.value.sqrtPriceX96,
-          tickLower: plan.value.tickLower,
-          tickUpper: plan.value.tickUpper,
-          fee: LAUNCH_FEE_TIER,
-        },
-      ],
+      value: postingFee,
+      args: [{ ...metadata, salt }],
     });
   };
 
@@ -178,7 +247,7 @@ export function LaunchForm() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr] lg:items-start">
-      <Panel label="Post a notice" aside={<Badge tone="idle">Fee {formatEth(stats?.postingFee) ?? "n/a"}</Badge>}>
+      <Panel label="Post a notice" aside={<Badge tone="idle">Posting {formatEth(postingFee) ?? "free"}</Badge>}>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
             <Field
@@ -284,7 +353,17 @@ export function LaunchForm() {
         <Panel label="What gets written to chain">
           <div className="grid grid-cols-2 gap-2.5">
             <StatTile label="Supply" value="1,000,000,000" hint="fixed, not a setting" />
-            <StatTile label="Pool fee" value={`${LAUNCH_FEE_TIER / 10_000}%`} />
+            <StatTile
+              label={ON_V4 ? "Swap fee" : "Pool fee"}
+              value={
+                ON_V4
+                  ? hookFeeBps === undefined
+                    ? `${FEE_TIER / 10_000}% LP`
+                    : `${FEE_TIER / 10_000}% + ${Number(hookFeeBps) / 100}%`
+                  : `${FEE_TIER / 10_000}%`
+              }
+              hint={ON_V4 ? "LP fee plus the hook's cut, both yours" : undefined}
+            />
             <StatTile
               label="Opening price"
               value={
@@ -310,18 +389,28 @@ export function LaunchForm() {
             <StatTile
               label="Tick range"
               value={plan?.value ? `${plan.value.tickLower} → ${plan.value.tickUpper}` : null}
-              hint={plan?.value ? "the band the supply sells across" : "needs the token address first"}
+              hint={
+                plan?.value
+                  ? "the band the supply sells across"
+                  : ON_V4
+                    ? "needs an opening and a ceiling"
+                    : "needs the token address first"
+              }
               className="col-span-2"
             />
             <StatTile
               label="Token address"
-              value={predicted ? shortAddress(predicted as string) : null}
-              hint="known before you sign, via CREATE2"
+              value={ON_V4 ? "assigned at launch" : predicted ? shortAddress(predicted as string) : null}
+              hint={
+                ON_V4
+                  ? "v4 needs no prediction: ETH is always currency0"
+                  : "known before you sign, via CREATE2"
+              }
               className="col-span-2"
             />
           </div>
 
-          {predicted && (
+          {!ON_V4 && predicted && (
             <a
               href={explorerAddress(predicted as string)}
               target="_blank"
@@ -333,8 +422,10 @@ export function LaunchForm() {
           )}
 
           <p className="micro mt-3 text-ink-faint">
-            Posted by {shortAddress(address) ?? "nobody yet"} · fees from the locked position stay claimable by that
-            address
+            Posted by {shortAddress(address) ?? "nobody yet"} ·{" "}
+            {ON_V4
+              ? "the hook's cut and the position's fees both stay claimable by that address"
+              : "fees from the locked position stay claimable by that address"}
           </p>
         </Panel>
       </div>

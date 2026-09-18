@@ -1,10 +1,10 @@
 import { NoticeImage } from "./NoticeImage";
 import { Badge } from "@/components/ui/Badge";
 import { explorerAddress } from "@/lib/chain";
-import type { Notice } from "@/lib/contracts";
+import type { BoardNotice } from "@/lib/notice";
 import { formatTokenAmount, shortAddress, timeAgo } from "@/lib/format";
 
-export function NoticeCard({ notice }: { notice: Notice }) {
+export function NoticeCard({ notice }: { notice: BoardNotice }) {
   const posted = timeAgo(notice.postedAt);
   const supply = formatTokenAmount(notice.supply);
 

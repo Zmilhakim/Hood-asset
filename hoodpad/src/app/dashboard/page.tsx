@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { MyNotices } from "@/components/dashboard/MyNotices";
+import { MyNoticesV4 } from "@/components/dashboard/MyNoticesV4";
+import { V4_BOARD_IS_OPEN } from "@/lib/contracts-v4";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -16,7 +18,7 @@ export default function DashboardPage() {
           fees it earns are not.
         </p>
       </div>
-      <MyNotices />
+      {V4_BOARD_IS_OPEN ? <MyNoticesV4 /> : <MyNotices />}
     </div>
   );
 }
