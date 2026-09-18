@@ -1,9 +1,10 @@
 # Hood-asset
 
-Brand assets for the Hood universe, plus three things built for Robinhood Chain
+Brand assets for the Hood universe, plus four things built for Robinhood Chain
 (chain id 4663): **Hoodpad**, a launchpad, ticker **$HPAD**; **CRATE**, a single
-token, ticker **$CRATE**; and **Tollpad**, a launchpad on Uniswap v4 whose pools
-charge one 5% toll, ticker **$TOLL**.
+token, ticker **$CRATE**; **Tollpad**, a launchpad on Uniswap v4 whose pools
+charge one 5% toll, ticker **$TOLL**; and **Quadpad**, a 4% one whose launches
+all open at the same price, ticker **$QUAD** — brand only so far.
 
 ```
 hoodpad/     the web app: landing, board, launch form, dashboard
@@ -11,6 +12,7 @@ contracts/   the launchpad contracts and their tests
 brand/       logo, avatar, banner and OG image, all generated from source
 crate/       CRATE: one token, one pool, one seal
 tollpad/     Tollpad: a launchpad with a 5% fee hook, its app and brand kit
+quadpad/     Quadpad: a 4% launchpad, one opening price — brand kit only
 *.png        the original Hood character art
 ```
 
@@ -48,6 +50,23 @@ work as they do on Hoodpad; what is new is that the rate belongs to the launchpa
 rather than to whichever fee tier the pool happened to be opened at, and it is
 part of the pool's key, so it cannot be changed after the fact. See
 [`tollpad/README.md`](tollpad/README.md).
+
+## Quadpad
+
+The fourth shape, and the only one that is not built yet. Same hook idea as
+Tollpad at a different rate — **4% of every swap, 80% to whoever launched the
+token** — with one thing neither of the other launchpads has: every pool opens at
+the same price. One billion tokens, all of them in the pool, priced so the lot
+comes to **1.7 ETH**, on the first launch and the thousandth alike. Elsewhere the
+poster picks the opening tick, so two launches on one day can be priced an order
+of magnitude apart and a buyer has to work out which.
+
+So far this is a brand and a specification: the logo, banner, social art and
+profile copy are done, the contracts are not. The numbers live in
+[`quadpad/brand/numbers.mjs`](quadpad/brand/numbers.mjs), which reports
+`checked: false` on every render and already carries the code that will read them
+out of the contracts and fail the render if they disagree. See
+[`quadpad/README.md`](quadpad/README.md).
 
 Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
 [`hoodpad/README.md`](hoodpad/README.md) for running the app, and
