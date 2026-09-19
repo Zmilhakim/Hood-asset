@@ -82,6 +82,70 @@ Two alternates, both true, both weaker right now:
 
 ---
 
+## Posts that ask people to launch
+
+Aimed at someone deciding where to put their own token, not at someone
+deciding whether to buy $HPAD. Every one of them says the fee is theirs and
+the contracts are unreviewed, because a launchpad that recruits by omission
+gets found out by the first person who reads the code.
+
+### The offer
+
+```
+Launching on Hoodpad costs nothing but gas.
+
+No ETH for liquidity — the supply opens the pool on its own.
+You keep the 1% your pool charges, for as long as it trades.
+The LP is locked by a contract with no release function.
+
+Unaudited. Read it first.
+
+hoodpad.site/launch
+```
+
+### What it proves to their buyers
+
+The strongest one. A launcher's hardest problem is being believed, and this is
+the only thing Hoodpad hands them that they cannot fake anywhere else.
+
+```
+The hardest thing to prove to people buying your token is that you will not pull the liquidity.
+
+On Hoodpad you cannot, and they can check it in a minute: the locker has no transfer, no withdraw, no decreaseLiquidity.
+
+You still keep the trading fees.
+
+hoodpad.site/launch
+```
+
+### For anyone without capital
+
+```
+You do not need ETH to launch a token on Hoodpad.
+
+The supply is the liquidity. It opens a pool on its own, priced from whatever valuation you set, and the position is locked where nobody can reach it — including us.
+
+Gas is the only cost.
+
+hoodpad.site/launch
+```
+
+### The mechanism, plainly
+
+```
+One transaction on Hoodpad:
+
+mint 1,000,000,000
+open a pool holding all of it
+lock the position for good
+
+No ETH of yours goes in, and nothing is held back for us — posting is free, and that zero is immutable in a contract with no owner.
+
+hoodpad.site/launch
+```
+
+---
+
 ## 4. Thread
 
 ### 1/
@@ -179,6 +243,10 @@ Check what it holds. That is the claim.
 | $HPAD | 278 |
 | Follow-up | 276 |
 | The lock | 267 |
+| Recruit: offer | 271 |
+| Recruit: proof | 272 |
+| Recruit: no capital | 260 |
+| Recruit: mechanism | 258 |
 | Thread 1/ | 258 |
 | Thread 2/ | 247 |
 | Thread 3/ | 228 |
