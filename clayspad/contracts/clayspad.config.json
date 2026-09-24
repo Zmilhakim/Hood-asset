@@ -1,0 +1,15 @@
+{
+  "$comment": "Addresses are public. Private keys never go in this file, or any file in this repo.",
+  "chainId": 4663,
+  "poolManager": "0x8366a39CC670B4001A1121B8F6A443A643e40951",
+  "treasury": "0x3C4f690196F696c45aD897524ead5fa92cb085de",
+  "deployer": "0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485",
+  "supplyWallet": "0x3C4f690196F696c45aD897524ead5fa92cb085de",
+  "launch": {
+    "$comment": "floorEth and ceilEth are market caps for the whole 1,000,000,000 supply, not prices per token. The pool opens at the floor and the range tops out at the ceiling.",
+    "tickSpacing": 200,
+    "floorEth": "1.7",
+    "ceilEth": "170"
+  },
+  "deployed": {}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "clayspad-brand",
+  "private": true,
+  "type": "module",
+  "description": "Draws the Clayspad reference mark at the level Clayspad.sol sets",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
+  }
+}

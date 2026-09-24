@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  /* The ground: the unlit kiln everything sits in. Warm dark, never blue-grey. */
+  --color-ground: #0b0e0d;
+  --color-ground-deep: #060807;
+  --color-ground-soft: #121717;
+
+  /* Clay: the material every surface is made of. */
+  --color-clay: #565d65;
+  --color-clay-light: #8d949c;
+  --color-clay-dark: #2b3037;
+
+  /* Slip: the writing on it. */
+  --color-paper: #f2f5f4;
+  --color-paper-dim: #d7dcda;
+  --color-paper-faint: #8d949c;
+
+  /* Signal: the one colour allowed to glow, and it is always emissive. */
+  --color-signal: #3fe08a;
+  --color-signal-hot: #a7f3c4;
+  --color-signal-deep: #1e9e5e;
+  --color-green-wash: #0e2b21;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    /* Grog in unfired clay: two offset dot grids, no image request. */
+    background-image:
+      radial-gradient(rgb(63 224 138 / 0.035) 0.5px, transparent 0.5px),
+      radial-gradient(rgb(255 255 255 / 0.022) 0.5px, transparent 0.5px);
+    background-size: 11px 11px, 17px 17px;
+    background-position: 0 0, 5px 7px;
+    color: var(--color-paper);
+    font-family: var(--font-mono);
+    margin: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-signal);
+    color: var(--color-ground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+}
+
+/* A panel of fired clay: the base surface every card is cut from. */
+@utility clay-panel {
+  background-color: var(--color-ground-soft);
+  border: 1px solid var(--color-clay-dark);
+}
+
+/* The glow, used once per view. Emissive, never a background wash on a shape. */
+@utility kiln-glow {
+  box-shadow:
+    0 0 0 1px rgb(63 224 138 / 0.35),
+    0 0 28px -6px rgb(63 224 138 / 0.4);
+}
+
+@utility seam {
+  background-image: linear-gradient(90deg, transparent, var(--color-signal), transparent);
+}
+
+@utility micro {
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility drifting {
+  animation: drift 42s linear infinite;
+}
+
+@keyframes ember {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@utility embering {
+  animation: ember 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drifting,
+  .embering {
+    animation: none;
+  }
+}
