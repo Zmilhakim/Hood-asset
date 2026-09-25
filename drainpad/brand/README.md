@@ -6,7 +6,7 @@ them.
 | | |
 | --- | --- |
 | `compose.sh` | Builds the link preview and the post cards, and captions the two images that start as art |
-| `PROMPTS.md` | The Google Flow prompts for the avatar and the header |
+| `PROMPTS.md` | The Google Flow prompts for the logo, the banner and the post background |
 | `X-PROFILE.md` | Handle, display name, bio |
 | `X-POSTS.md` | Every post, in the order they go up |
 | `fonts/` | The three faces the site loads, kept here so `compose.sh` fetches nothing |
@@ -24,17 +24,18 @@ they are composed from the same colours and the same faces the site loads, which
 is the point. A wordmark burned into a card and a heading rendered in a browser
 should be the same letters, not two faces that merely look similar.
 
-The avatar and the header **start as art from Google Flow**, because those two
-want a real image behind them. The prompts ask for art with no lettering at all.
+The logo, the header and the background the post cards sit on **start as art
+from Google Flow**, because those three want a real image behind them. The prompts ask for art with no lettering at all.
 Image generators misspell, and DRAINPAD coming back as DRIANPAD is not a risk
 worth taking with the one word that has to be right — so the words go on
 afterwards, in `compose.sh`, placed around what covers the image on each surface.
 The avatar sits over the lower left of an X header, so the header's type starts
 past it.
 
-Drop the Flow renders in as `out/x-header-plain.jpg` and `out/x-avatar-plain.jpg`
-and re-run. Until they are there, those two steps are skipped and everything
-else still builds.
+Drop the Flow renders in as `out/x-avatar-plain.jpg`, `out/x-header-plain.jpg`
+and `out/post-bg-plain.jpg`, then re-run. Until a file is there its step is
+skipped and everything else still builds — and the post cards fall back to the
+drawn slab, which is a finished image in its own right rather than a placeholder.
 
 ## No numbers, anywhere in here
 

@@ -121,7 +121,18 @@ rm -f out/_base.png out/_bars.png out/_hazard.png
 card() {
   local out=$1 kicker=$2 line1=$3 line2=$4 foot=$5
 
-  slab 1200 675 out/_c-base.png
+  # Over the Flow art when it is there, over a poured slab when it is not. The
+  # art is darkened from the top left, because that is where the headline lands
+  # and chalk-white type has to sit on the picture without a box behind it.
+  if [ -f out/post-bg-plain.jpg ]; then
+    magick out/post-bg-plain.jpg -resize 1200x675^ -gravity center -extent 1200x675 \
+      \( -size 1200x675 "gradient:#0B0C0DE0-#0B0C0D20" -rotate 0 \) \
+      -compose over -composite \
+      out/_c-base.png
+  else
+    slab 1200 675 out/_c-base.png
+  fi
+
   bars 1200 120 "$KERB" out/_c-bars.png
   hazard 1200 6 out/_c-hazard.png
 
