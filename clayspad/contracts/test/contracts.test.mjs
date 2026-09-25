@@ -14,6 +14,7 @@ import { Address, bytesToHex, createAccount, hexToBytes } from "@ethereumjs/util
 import {
   concatHex,
   decodeFunctionResult,
+  decodeAbiParameters,
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
@@ -520,6 +521,53 @@ test("what the hook owes is exactly what it holds claims for", async () => {
     const ledger = (await owed(ctx, address(CREATOR), currency)) + (await owed(ctx, address(TREASURY), currency));
     assert.equal(ledger, await claims(ctx, currency), `the ledger and the claims disagree about ${currency}`);
   }
+});
+
+test("a launched token's constructor arguments can be rebuilt from the chain alone", async () => {
+  const ctx = await venue();
+  const { piece, token } = await launch(ctx);
+
+  // This is exactly what verify.mjs does: it never stores what a token was
+  // deployed with, it reads the piece back and reconstructs the six values.
+  // If that reconstruction is wrong, Blockscout rejects the submission with
+  // nothing useful to say — so the check belongs here instead.
+  const rebuilt = {
+    name: piece.name,
+    symbol: piece.symbol,
+    kiln: ctx.kiln,
+    kilnAmount: piece.toPool,
+    supplyWallet: piece.supplyWallet,
+    supplyWalletAmount: piece.toSupplyWallet,
+  };
+
+  // What the token itself says it was built with.
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "name"), rebuilt.name);
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "symbol"), rebuilt.symbol);
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "toKiln"), rebuilt.kilnAmount);
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "toSupplyWallet"), rebuilt.supplyWalletAmount);
+  assert.equal(await ctx.read(token, tokenArtifact.abi, "supplyWallet"), rebuilt.supplyWallet);
+
+  // And the kiln really is where that share went, which is the one argument the
+  // token does not record as an address.
+  assert.equal(await heldBy(ctx, token, rebuilt.kiln), 0n, "the kiln should have put its share in the pool");
+
+  // The encoding round-trips. A silently truncated string here is the kind of
+  // thing that only surfaces as a rejected verification.
+  const encoded = encodeAbiParameters(
+    parseAbiParameters("string, string, address, uint256, address, uint256"),
+    [rebuilt.name, rebuilt.symbol, rebuilt.kiln, rebuilt.kilnAmount, rebuilt.supplyWallet, rebuilt.supplyWalletAmount],
+  );
+  const [name, symbol, kiln, kilnAmount, wallet, walletAmount] = decodeAbiParameters(
+    parseAbiParameters("string, string, address, uint256, address, uint256"),
+    encoded,
+  );
+
+  assert.equal(name, rebuilt.name);
+  assert.equal(symbol, rebuilt.symbol);
+  assert.equal(getAddress(kiln), rebuilt.kiln);
+  assert.equal(kilnAmount, rebuilt.kilnAmount);
+  assert.equal(getAddress(wallet), rebuilt.supplyWallet);
+  assert.equal(walletAmount, rebuilt.supplyWalletAmount);
 });
 
 // -------------------------------------------------------------- withdrawing

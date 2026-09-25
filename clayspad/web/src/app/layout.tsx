@@ -34,13 +34,13 @@ export const metadata: Metadata = {
     siteName: "Clayspad",
     title: "Clayspad — the kiln has no door",
     description,
-    images: [{ url: "/brand/og-1200x630.png", width: 1200, height: 630, alt: "Clayspad" }],
+    images: [{ url: "/brand/og-1200x630.jpg", width: 1200, height: 630, alt: "Clayspad" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Clayspad — the kiln has no door",
     description,
-    images: ["/brand/og-1200x630.png"],
+    images: ["/brand/og-1200x630.jpg"],
   },
 };
 

@@ -109,7 +109,11 @@ console.log(`hook       ${hook} (flags confirmed on chain)`);
 console.log(`kiln     ${kiln}`);
 console.log(`treasury   ${storedTreasury} (confirmed on chain, immutable)`);
 
-recordDeployed(config, { launchpad, hook, kiln });
+// The salt goes in the file too. It is one of the launchpad's three constructor
+// arguments, so verifying the contract later is impossible without it — and it
+// is mined from a nonce that has already moved by then, so it cannot be
+// recovered by re-running the miner.
+recordDeployed(config, { launchpad, hook, kiln, hookSalt: mined.salt, deployedAt: new Date().toISOString() });
 
 console.log(`\nNothing is launched yet. The shelf is empty and anyone can post to it:\n`);
 console.log(`    NAME="…" SYMBOL="…" npm run launch                  # prints the plan, sends nothing`);

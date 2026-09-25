@@ -11,5 +11,12 @@
     "floorEth": "1.7",
     "ceilEth": "170"
   },
-  "deployed": {}
+  "deployed": {
+    "launchpad": "0x1254ca7701921c648d62c5f614673e7c067517c5",
+    "hook": "0x262afBFaCA263C91C7BD585188720Aab9AD4A0CC",
+    "kiln": "0xB2A2b64e792c654550A86eB0A2323435c685240E",
+    "hookSalt": "0x00000000000000000000000000000000000000000000000000000000000010e6",
+    "deployedAt": "2026-09-25T06:32:01.526Z",
+    "creationTx": "0xdadded314540551bbc30ee33e6b56bd75f7c829b65a8bdc1878bcc246381e5cb"
+  }
 }

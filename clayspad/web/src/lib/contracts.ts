@@ -6,16 +6,22 @@ import { clayTokenAbi } from "./abi/clayToken";
 export { clayspadAbi, clayHookAbi, kilnAbi, clayTokenAbi };
 
 /**
- * The launchpad, once it exists.
+ * The launchpad, live on Robinhood Chain since 2026-09-25.
  *
- * Clayspad is **not deployed**. There is no address to hard-code and this file
- * does not invent one: until `NEXT_PUBLIC_CLAYSPAD_ADDRESS` is set, every page
- * that would read the chain says so instead of filling the screen with sample
- * tokens. A launchpad that shows fake launches on its first day has taught its
- * readers that what it shows is not necessarily real, which is the one lesson
- * it cannot afford to teach.
+ * Kept in the repo rather than only in a dashboard environment variable: the
+ * address is public, the launchpad is ownerless and immutable, and a build
+ * should not depend on config that can go missing.
+ * `NEXT_PUBLIC_CLAYSPAD_ADDRESS` still overrides it, which is how a fork or a
+ * testnet gets pointed at its own shelf.
+ *
+ * Unset it and every page that reads the chain says the launchpad is not
+ * deployed rather than filling the screen with sample tokens — a launchpad that
+ * shows fake launches has taught its readers that what it shows is not
+ * necessarily real, which is the one lesson it cannot afford to teach.
  */
-const configured = process.env.NEXT_PUBLIC_CLAYSPAD_ADDRESS?.trim();
+const DEPLOYED_LAUNCHPAD = "0x1254ca7701921c648d62c5f614673e7c067517c5";
+
+const configured = process.env.NEXT_PUBLIC_CLAYSPAD_ADDRESS?.trim() || DEPLOYED_LAUNCHPAD;
 
 export const CLAYSPAD_ADDRESS =
   configured && /^0x[0-9a-fA-F]{40}$/.test(configured) ? (configured as `0x${string}`) : undefined;

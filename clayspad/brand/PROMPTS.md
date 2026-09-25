@@ -183,6 +183,76 @@ render, photoreal, high detail, no text
 
 **Negative:** `door, hatch, opening, window, handle, text, letters, words, people, characters, smoke clouds, orange fire, red flames, rainbow colours, purple, cartoon, flat illustration, watermark`
 
+## 6. The launch post — the token itself, 16:9
+
+The main image for the launch announcement. A single token, not a burst of them:
+the post is about one launch, and one object reads at thumbnail size where a
+scatter of shards turns to noise.
+
+```
+Cinematic 3D product shot, 16:9, a single thick circular token disc sculpted
+from smooth dense clay, standing upright and slightly angled toward the camera,
+dark graphite clay #565D65 with light grey #8D949C catching its upper rim and
+deep #2B3037 in the bevel, its face plain and unmarked apart from one continuous
+vertical seam of emissive neon green #3FE08A glowing from inside the clay,
+brightest at the core #A7F3C4, the disc resting on a dark machined platform
+#2B3037 with a circular portal beneath it glowing hot green and throwing
+volumetric light up across the underside of the disc, fine embers drifting, the
+left third of the frame deep empty near-black #0B0E0D reserved for type added
+later, faint stars high in the upper right, cinematic lighting, cool rim light
+along the clay edge, 50mm lens, shallow depth of field, unreal engine cinematic
+render, photoreal, high detail, no text
+```
+
+**Negative:** `text, letters, words, numbers, logo, ticker, symbol on the coin face, currency sign, dollar sign, many coins, pile of coins, stack, treasure, watermark, people, hands, lens flare, rainbow colours, gold, yellow, orange, purple, cartoon, flat illustration`
+
+The face is left plain on purpose. A generator asked to render your C mark will
+produce something *nearly* it, which is worse than nothing — composite the real
+logo on in an editor if you want it there.
+
+## 7. The launch post — the firing, 16:9
+
+The alternative, and the one that matches the line in the post. No token visible
+at all: a sealed chamber with something burning inside it that cannot be opened.
+
+```
+Cinematic 3D render, 16:9, a heavy sealed kiln chamber sculpted from smooth dark
+clay #2B3037, seen three-quarter on, standing on grey rock, its panel seams
+glowing emissive neon green #3FE08A and the heat inside showing as a hot green
+core #A7F3C4 through fine vents along its base, the chamber completely enclosed
+with no door, no hatch, no handle and no opening on any face, volumetric green
+light pooling on the rock beneath it and fading into deep near-black #0B0E0D,
+faint drifting embers, the left third of the frame empty dark space reserved for
+type added later, cinematic lighting, cool rim light along the clay edges, 50mm
+lens, shallow depth of field, unreal engine cinematic render, photoreal, high
+detail, no text
+```
+
+**Negative:** `door, hatch, opening, window, handle, hinge, text, letters, words, numbers, logo, people, characters, smoke clouds, orange fire, red flames, sparks everywhere, rainbow colours, purple, cartoon, flat illustration, watermark`
+
+## 8. The launch post — square, 1:1
+
+X gives a square image more vertical space on a phone than a 16:9 one. Worth
+generating if the post is going out mobile-first. Same subject as prompt 6,
+recomposed — nothing is reserved for type, because a square crops tighter and
+the words are in the post itself.
+
+```
+Cinematic 3D product shot, square 1:1, a single thick circular token disc
+sculpted from smooth dense clay, centred, standing upright and angled slightly
+toward the camera, filling about half the frame, dark graphite clay #565D65 with
+light grey #8D949C on its upper rim and deep #2B3037 in the bevel, its face
+plain and unmarked apart from one continuous vertical seam of emissive neon
+green #3FE08A glowing from within, core #A7F3C4, resting on a dark machined
+platform #2B3037 with a circular portal beneath throwing green volumetric light
+up across it, deep near-black background #0B0E0D with a soft radial green wash
+behind the subject, fine embers, cinematic lighting, cool rim light, 50mm lens,
+shallow depth of field, unreal engine cinematic render, photoreal, high detail,
+no text
+```
+
+**Negative:** `text, letters, words, numbers, logo, ticker, symbol on the coin face, dollar sign, many coins, pile, stack, watermark, people, hands, cropped subject, subject touching frame edge, lens flare, rainbow colours, gold, orange, purple, cartoon, flat illustration`
+
 ---
 
 ## Notes that apply to all of them

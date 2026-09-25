@@ -23,6 +23,7 @@ npm run deploy    # puts the launchpad, the hook and the kiln on chain
 npm run launch    # puts one token on the shelf — prints the plan first
 npm run status    # what the pool manager says about the shelf, right now
 npm run collect   # take the fee you are owed
+npm run verify    # publish the source on Blockscout — sends nothing, needs no key
 ```
 
 ## What a launch does
@@ -102,6 +103,77 @@ and reverts if the bits are wrong.
 So a mis-mined salt costs a failed deployment rather than a launchpad whose fee
 is quietly never charged. `npm run mine` prints the answer before anything is
 spent on it; `npm run deploy` mines the same salt again itself.
+
+## Verifying — Blockscout first, then Sourcify
+
+**The order matters and it is not recoverable.** A contract's licence can only
+be set while it is being verified. Once it is verified by any route, Blockscout
+answers `"Already verified"` to every further attempt and exposes no endpoint
+for changing the licence — `PATCH /api/v2/smart-contracts/<addr>` and
+`/license` both 404. The only way back is a Blockscout account with proven
+ownership of the address, which means signing with the deployer key.
+
+Blockscout imports Sourcify's results automatically, within minutes, **and that
+import carries no licence**. So verifying on Sourcify first loses the MIT label
+for good.
+
+```bash
+npm run verify            # Blockscout, with license_type=mit — do this first
+npm run verify:sourcify   # then Sourcify
+```
+
+Both read the same standard JSON input, so neither is a second description of
+the contracts.
+
+### When Blockscout is behind a bot challenge
+
+This chain's explorer sits behind Cloudflare's JavaScript challenge. It answers
+403 to automated requests from anywhere — a different IP or User-Agent does not
+help, because what it wants is a browser that runs the challenge script.
+
+`npm run verify` detects that and says so rather than reporting a verification
+failure. Getting past it needs a real browser pointed at the explorer, with the
+API called from inside the page once the challenge clears.
+
+## Verifying on Blockscout
+
+`npm run verify` submits the **standard JSON input** that `npm run compile`
+already wrote — and already proved compiles to byte-identical bytecode. That
+proof is the point: an explorer rejects an input producing different bytecode,
+and learning that at compile time is faster than learning it from a rejection.
+
+It sends no transaction and needs no private key. Verification is a claim about
+source code, not a change to the chain.
+
+The constructor arguments are encoded from the same values the deploy used
+rather than left for the explorer to guess — a wrong guess is rejected with no
+useful message. That includes the hook's CREATE2 salt, which is why
+`npm run deploy` writes `hookSalt` into the config: it is the launchpad's third
+constructor argument, it was mined against a nonce that has moved by the time
+anyone verifies, and it cannot be recovered by re-running the miner.
+
+**Launched tokens are verified too.** `ClayToken` is deployed fresh by every
+launch with six constructor arguments, and none of them is stored anywhere off
+chain — they are read back out of the piece the launchpad recorded: the name,
+the ticker, the kiln, its share, the supply wallet and its share. So a token
+launched a year ago can still be verified from the chain alone, with nothing
+anybody had to remember to write down.
+
+That reconstruction is the one part of verification that can be silently wrong,
+so `test/contracts.test.mjs` checks it against a real launch rather than
+assuming it.
+
+`npm run verify` does the launchpad, the hook, the kiln and every token on the
+shelf. `npm run verify -- --id 3` does one launched token and nothing else.
+`npm run verify -- --print` shows what would be submitted and sends nothing.
+
+**If the explorer answers a bot challenge** — Blockscout sits behind one on some
+networks, and this one did when these scripts were written — the script says so
+rather than reporting a verification failure, and every submission can be made
+by hand: open `<explorer>/address/<address>/contract-verification`, choose
+Solidity (standard JSON input), set the compiler to `v0.8.26+commit.8a97fa7a`,
+upload `out/solc-input.json`, and paste the constructor arguments from
+`--print`.
 
 ## Configuration
 

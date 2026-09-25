@@ -7,8 +7,8 @@ the art comes back from Google Flow.
 a market cap. Those live in the contracts and nowhere else — see
 [the rule](#the-rule-no-figures-outside-the-contracts) at the bottom.
 
-Pick one option and one language and stay in it. A headline in English over a
-feed in Indonesian reads like a headline somebody else wrote.
+**The account is written in English**, as a standing rule, so there is one
+version of each option rather than two. Pick an option and stay with it.
 
 Every line below is 34 characters or shorter. A banner is read at thumbnail size
 more often than at full size, and a line that wraps on a phone stops being a
@@ -16,74 +16,29 @@ headline and becomes a paragraph.
 
 ---
 
-## A. The announcement
+## The header
 
-What to run now, before there is anything deployed to point at.
-
-**English**
-
-```
-CLAYSPAD
-LAUNCHING ON ROBINHOOD CHAIN
-
-Launch a token in one transaction.
-```
-
-**Indonesian**
+One option, not three. The header sits there for months, so it says what
+Clayspad **is** rather than announcing anything — a banner naming a launch is
+stale the week after it happens.
 
 ```
 CLAYSPAD
-SEGERA DI ROBINHOOD CHAIN
+A LAUNCHPAD ON ROBINHOOD CHAIN
 
-Launch token dalam satu transaksi.
+Fired once, and for good.
 ```
 
-## B. The kiln
+The kicker says where it lives; the line says what the place does to what you
+put in it. Neither sentence appears anywhere else on the account — the bio is
+plain words with no metaphor, the launch image is three words about the moment,
+and the kiln line belongs to the site where there is room to explain it. See
+[`VOICE-MAP.md`](VOICE-MAP.md).
 
-The one that reads best beside this particular render: a sealed platform with a
-portal burning in the middle of it *is* a kiln with no door. The art and the
-line are saying the same thing, which is the only reason to put words next to a
-picture at all.
+### If the account is not launched yet
 
-**English**
-
-```
-CLAYSPAD
-LAUNCHING ON ROBINHOOD CHAIN
-
-The kiln has no door.
-```
-
-**Indonesian**
-
-```
-CLAYSPAD
-SEGERA DI ROBINHOOD CHAIN
-
-Tungkunya nggak punya pintu.
-```
-
-## C. The creator
-
-Leads with what a creator gets rather than with what the machine does.
-
-**English**
-
-```
-CLAYSPAD
-LAUNCHING ON ROBINHOOD CHAIN
-
-Launch it. Keep earning from it.
-```
-
-**Indonesian**
-
-```
-CLAYSPAD
-SEGERA DI ROBINHOOD CHAIN
-
-Launch sekali, dapat terus.
-```
+Swap the kicker for `LAUNCHING ON ROBINHOOD CHAIN` until it is, then put it
+back. The headline does not change.
 
 ---
 
@@ -121,20 +76,22 @@ from the source that enforces them.
 
 Two consequences to be aware of rather than to work around:
 
-- **The copy cannot make the disclosure either.** The share of every supply that
-  stays liquid is the single most material thing a buyer needs to know, and with
-  this rule it is not in the bio, the posts or the banner. It has to stay easy to
-  find somewhere public — right now that is `clayspad/README.md` and
-  `contracts/README.md`, both of which state it in full. Keep it that way.
+- **The copy cannot state the figure.** The share of every supply that stays
+  liquid is the single most material thing a buyer needs to know, so it has to be
+  easy to find somewhere public. It is: **clayspad.fun says it in words** on the
+  front page and on `/learn` — liquid from the first block, not vested, not
+  cliffed, not locked — without printing the percentage, which lives in
+  `Clayspad.sol` where it is enforced. Do not let a redesign quietly drop it.
 - **"Most of the supply" is the strongest claim the copy can make**, and it is
   still true. Do not let it slide into "the whole supply" or "all of it", which
   would be false and is the exact shape of mistake this rule exists to prevent.
 
-## No domain and no handle
+## The domain may go on it, the handle may not
 
-Neither goes on the banner until both are registered. Hoodpad shipped a banner
-printing `HOODPAD.FUN` and `@HOODPAD` when neither was — that is why this is a
-rule here rather than a preference.
+`clayspad.fun` is registered and live, so it can go on the banner. **The handle
+is not registered yet**, so it must not — come back and change this line once it
+is. Hoodpad shipped a banner printing `HOODPAD.FUN` and `@HOODPAD` when neither
+was, which is why this is a rule here rather than a preference.
 
 ## A note on the ratio
 
@@ -144,4 +101,4 @@ would crop the top and bottom off the platform.
 
 If it is going on X as well, generate that one with prompt 3 in
 [`PROMPTS.md`](PROMPTS.md), which is composed for the shape. The copy above fits
-either without changes — it is three lines in both.
+either ratio without changes — it is three lines either way.

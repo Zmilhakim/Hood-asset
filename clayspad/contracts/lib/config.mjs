@@ -32,15 +32,27 @@ export function loadConfig() {
 }
 
 /**
+ * The one value in this file that is legitimately 32 bytes of hex.
+ *
+ * Two of them. `hookSalt` is a CREATE2 salt — a constructor argument, visible in
+ * the deployment transaction, and the launchpad cannot be verified without it.
+ * `creationTx` is a transaction hash, which is as public as a value gets. Both
+ * are named explicitly rather than matched loosely, so a key pasted anywhere
+ * else is still caught.
+ */
+const PUBLIC_32_BYTE_VALUES = new Set(["deployed.hookSalt", "deployed.creationTx"]);
+
+/**
  * This file is committed, so anything key-shaped in it is already a mistake and
  * possibly already public. Stop rather than carry on and deploy with it.
  *
  * An address is 42 characters; a private key is 66. Nothing this config holds is
- * ever 66 characters of hex, so the test needs no cleverness.
+ * ever 66 characters of hex apart from the salt above, so the test needs no
+ * cleverness beyond that one exemption.
  */
 function refuseSecrets(node, path) {
   if (typeof node === "string") {
-    if (/^0x[0-9a-fA-F]{64}$/.test(node.trim())) {
+    if (!PUBLIC_32_BYTE_VALUES.has(path) && /^0x[0-9a-fA-F]{64}$/.test(node.trim())) {
       fail(
         `${path || "a value"} in clayspad.config.json looks like a private key.`,
         "",

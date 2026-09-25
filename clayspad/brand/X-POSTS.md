@@ -2,6 +2,9 @@
 
 Copy for the account.
 
+**This account is written in English**, as a standing rule. Anything added to
+this file follows it.
+
 **No figures in any of them.** The supply, the split, the fee and the range are
 constants in the contracts and are published there and nowhere else — see
 [`X-PROFILE.md`](X-PROFILE.md#the-rule-no-figures-outside-the-contracts).
@@ -82,6 +85,53 @@ Images are generated from [`PROMPTS.md`](PROMPTS.md).
 >
 > That is not a bug and it is not a launch mechanic. It is what a one-sided pool
 > is.
+
+## The launch announcement
+
+The one to post when $CLAY goes out, with `out/post-launch-en.jpg` attached.
+The image says "The fire is lit." and this says the mechanism — between them a
+reader gets two things rather than one twice. It ends on the deployer wallet, which is
+the address that **will** deploy the token — not the token's own address, which
+does not exist until the launch transaction is mined.
+
+That distinction is the whole value of posting it. Published in advance, it lets
+anyone check a launch against it the moment a fake appears; posted as if it were
+a contract address, it invites people to buy something that is not there. Keep
+the label on it.
+
+> Clayspad is launching $CLAY on Robinhood Chain.
+>
+> One transaction mints the supply, splits it, opens a Uniswap v4 pool against
+> ETH and puts the pool's share in. That share is not coming back out — not
+> because we promise it won't, but because no function exists that could move it.
+>
+> clayspad.fun
+>
+> $CLAY will be deployed from this wallet, and from no other:
+> 0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485
+>
+> Anything that launches from a different address is not ours. Check it before
+> you touch it.
+
+### The follow-up, once it is actually mined
+
+Post this **after** the launch transaction confirms, not before. It carries the
+token's own address, which is the one people will trade against — and until the
+transaction is mined, that address does not exist.
+
+> $CLAY is live.
+>
+> Token: 0x…
+> Deployed from: 0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485
+> Pool: Uniswap v4, against ETH, on Robinhood Chain
+>
+> The supply split and the fee are in the launchpad contract, unchanged from
+> every launch it will ever do. Read it before you buy it.
+
+*Fill the token line in from the launch receipt, and check it against the chain
+first — `npm run status` in `../contracts` prints what the pool manager actually
+has. An address in a post is the one thing a reader cannot verify by reading the
+post.*
 
 ## When the first token launches
 

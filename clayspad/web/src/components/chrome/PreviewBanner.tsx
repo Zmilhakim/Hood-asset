@@ -4,8 +4,9 @@ import { SHELF_IS_OPEN } from "@/lib/contracts";
  * The line across the top that says this is not live yet.
  *
  * It renders only while there is no launchpad address configured, and it
- * disappears on its own the moment there is one — so it cannot be left up by
- * mistake, and it cannot be taken down early either.
+ * disappeared on its own the moment there was one — so it could not be left up
+ * by mistake, and it could not be taken down early either. It stays in the tree
+ * because a fork pointed at nothing should still say so.
  */
 export function PreviewBanner() {
   if (SHELF_IS_OPEN) return null;

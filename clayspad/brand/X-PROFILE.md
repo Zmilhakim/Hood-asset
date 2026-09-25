@@ -4,6 +4,10 @@ Everything needed to set the account up, in the fields X asks for. Character
 counts were measured rather than estimated; X counts Unicode code points, and
 the em dash counts as one.
 
+**This account is written in English.** That is a standing rule across every
+account, not a choice to make per post — so there is one version of each line
+below rather than two.
+
 **No figures anywhere in here.** The supply, the split, the fee and the range
 are constants in the contracts and are published there and nowhere else — see
 [the rule](#the-rule-no-figures-outside-the-contracts) at the bottom.
@@ -34,38 +38,23 @@ Hoodpad went looking, which is the ordinary outcome rather than the unlucky one.
 
 ## Bio — max 160
 
-Two picks, because the account should be in one language and stay in it. A bio
-in English over a feed in Indonesian reads like a bio somebody else wrote.
-
-**English** (151 characters):
+**Pick this** (151 characters):
 
 ```
-A launchpad on Robinhood Chain. Launch a token in one transaction: most of the supply is fired into the pool for good, and every swap pays the creator.
+A launchpad on Robinhood Chain. Most of what you launch goes into a pool nobody can drain, and every swap after that pays you for as long as it trades.
 ```
 
-**Indonesian** (131 characters):
-
-```
-Launchpad di Robinhood Chain. Launch token dalam satu transaksi: sebagian besar supply dibakar ke pool dan nggak bisa ditarik lagi.
-```
+Plain words, no metaphor: the kiln line is on the banner and the site, and a bio
+that repeats it teaches a reader nothing new. See
+[`VOICE-MAP.md`](VOICE-MAP.md).
 
 ### The rest of them
 
-English:
-
 | Count | Text |
 | --- | --- |
-| 137 | `A launchpad on Robinhood Chain. The kiln has no door: what goes into the pool does not come back out. Everything else is in the contract.` |
+| 148 | `A launchpad on Robinhood Chain. Most of what you launch goes into a pool nobody can drain. Every swap after that pays you, for as long as it trades.` |
+| 137 | `Robinhood Chain. Most of what you launch goes into a pool nobody can drain, and you earn from every swap for as long as anyone trades it.` |
 | 133 | `Launch a token in one transaction. The supply split, the fee and the range are constants in the contract — read them there, not here.` |
-| 100 | `A launchpad on Robinhood Chain. Launch it, and keep earning from it for as long as anyone trades it.` |
-
-Indonesian:
-
-| Count | Text |
-| --- | --- |
-| 125 | `Launchpad di Robinhood Chain. Tungkunya nggak punya pintu: yang masuk pool nggak bisa keluar lagi. Selebihnya ada di kontrak.` |
-| 122 | `Launch token dalam satu transaksi. Pembagian supply, fee, dan range-nya constant di kontrak — baca di sana, bukan di sini.` |
-| 94 | `Launchpad di Robinhood Chain. Launch sekali, terus dapat bagian tiap kali ada yang menukarnya.` |
 
 ### How to pick
 
@@ -81,9 +70,17 @@ prevent.
 
 ## Website
 
-Leave it empty until there is a domain, and then put the domain there. Do not
-put a link to an explorer page in this field: it looks like a website, it is not
-one, and it goes stale the first time anything is redeployed.
+```
+clayspad.fun
+```
+
+Registered, and the site is live on it. Put the apex in, not `www.` and not the
+`.vercel.app` URL — the Vercel address works but it is the deployment's address
+rather than the project's, and it stops being the one people should bookmark the
+moment anything moves.
+
+Do not put a link to an explorer page in this field: it looks like a website, it
+is not one, and it goes stale the first time anything is redeployed.
 
 ## Images
 
@@ -98,13 +95,14 @@ worth knowing before you do:
 
 The text that goes on the banner is in [`BANNER-COPY.md`](BANNER-COPY.md).
 
-**No domain and no handle on any image**, even added afterwards, until they are
-registered. X already shows both in its own profile chrome, and an image
+**The domain is now registered**, so `clayspad.fun` may go on an image if you
+want it there. **The handle is not**, so it must not — and neither should go on
+the art by default. X already shows both in its own profile chrome, and an image
 repeating them is one more thing that can go stale or turn out to be wrong.
 
 This is not a style preference. Hoodpad shipped a banner printing `HOODPAD.FUN`
-and `@HOODPAD` when neither was registered. **Do not put a domain or a handle on
-an image before it is yours.**
+and `@HOODPAD` when neither was registered. **Do not put a handle on an image
+before it is yours** — and come back and edit this paragraph once it is.
 
 **And no figures on any image either.** Not the supply, not the split, not the
 fee. See below.
@@ -123,12 +121,18 @@ words. Anything restated can drift from what it describes, gets screenshotted,
 and outlives the version it was true for. A reader who wants the numbers reads
 them from the thing that enforces them.
 
-The one consequence to stay aware of: **the copy cannot make the disclosure
-either.** The share of every supply that stays liquid is the most material thing
-a buyer needs to know, and under this rule it is not in the bio or the posts. It
-has to stay easy to find somewhere public — right now that is
-`clayspad/README.md` and `contracts/README.md`, both of which state it in full.
-Keep it that way.
+The one consequence to stay aware of: **the copy cannot state the figure.** The
+share of every supply that stays liquid is the most material thing a buyer needs
+to know, so it has to be easy to find somewhere public.
+
+It is. **clayspad.fun says it in words on two pages** — the answer to "Does all
+of the supply go into the pool?" on the front page, and the section "What it
+deliberately does not guarantee" on `/learn`. Both say it plainly: part of every
+supply is liquid from the first block, not vested, not cliffed, not locked, and
+no contract restrains it. What they do not do is print the percentage, which is
+in `Clayspad.sol` where it is enforced.
+
+That is the disclosure, and it is live. Do not let a redesign quietly drop it.
 
 ## Ticker
 

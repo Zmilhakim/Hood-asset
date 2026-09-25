@@ -10,7 +10,7 @@
 //
 // `deploy.mjs` runs this same code. Running it separately is for seeing the
 // answer before spending anything on it.
-import { formatEther } from "viem";
+import { formatEther, getContractAddress } from "viem";
 
 import { configAddress, loadConfig } from "./lib/config.mjs";
 import { connect, fail } from "./lib/env.mjs";
@@ -54,6 +54,19 @@ console.log(`\nlaunchpad  ${launchpad}   ← only if the next transaction from t
 console.log(`hook       ${mined.address}`);
 console.log(`salt       ${mined.salt}   (found in ${mined.tries} tries)`);
 console.log(`flags      ${flagsOf(mined.address).join(", ")}`);
+// The kiln is plain CREATE from the launchpad. Its nonce is 2, not 1: a contract
+// starts at 1, and deploying the hook with CREATE2 spends one. Checked against a
+// real deployment rather than reasoned about — see the note in the README.
+const kiln = getContractAddress({ from: launchpad, nonce: 2n });
+console.log(`kiln       ${kiln}`);
+
+const explorer = (process.env.EXPLORER_URL || "https://robinhoodchain.blockscout.com").replace(/\/$/, "");
+console.log(`\nWhere each one will be, once it exists:`);
+for (const [label, address] of [["launchpad", launchpad], ["hook", mined.address], ["kiln", kiln]]) {
+  console.log(`  ${label.padEnd(10)} ${explorer}/address/${address}`);
+}
+console.log(`  ${"deployer".padEnd(10)} ${explorer}/address/${deployer}   ← this one exists now`);
+
 console.log(`\nThe hook's constructor checks this itself. A salt mined against the wrong`);
 console.log(`nonce lands it on an unflagged address and reverts the whole deployment,`);
 console.log(`so the way this goes wrong is a failed transaction, not a silent one.`);
