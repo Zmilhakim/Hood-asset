@@ -39,6 +39,38 @@ const supplyWallet = configAddress(config, "supplyWallet", "SUPPLY_WALLET", {
 });
 
 const account = requireDeployerKey();
+
+// Which key is loaded decides two things that cannot be undone: who pays for
+// this, and who the creator's share of every future fee on this pool belongs to.
+// The launchpad is open to anyone, so it would accept a launch from any funded
+// address — which is exactly why this is checked here rather than left to the
+// chain. A launch signed by the wrong key is not an error anywhere; it is a pool
+// whose fees quietly belong to somebody else.
+const intendedDeployer = configAddress(config, "deployer", "DEPLOYER", {
+  what: "the address that launches, and therefore earns the creator's share",
+});
+
+if (account.address.toLowerCase() !== intendedDeployer.toLowerCase()) {
+  const linesForSupplyWallet =
+    account.address.toLowerCase() === supplyWallet.toLowerCase()
+      ? [
+          "",
+          "That is the supply wallet — the address a launch pays *to*, not the one",
+          "it is signed by. It holds no gas and cannot send this transaction.",
+        ]
+      : [];
+
+  fail(
+    `snowly.config.json expects this launch to be signed by ${intendedDeployer}`,
+    `but DEPLOYER_KEY belongs to ${account.address}.`,
+    ...linesForSupplyWallet,
+    "",
+    "Load the key for the address above, or change `deployer` in the config if",
+    "you really mean to launch from somewhere else — whoever signs this is who",
+    "the creator's share of every fee on this pool goes to, permanently.",
+  );
+}
+
 const { chain, publicClient } = await connect();
 if (chain.id !== config.chainId) fail(`snowly.config.json says chain ${config.chainId}, not ${chain.id}`);
 
