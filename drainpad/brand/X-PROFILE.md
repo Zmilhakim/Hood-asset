@@ -2,6 +2,10 @@
 
 English throughout, like everything this account puts out.
 
+## Ticker
+
+`$DRAIN`.
+
 ## Handle
 
 `@drainpadfun` if it is free. `@drainpad_fun` and `@drainpaddotfun` are the
@@ -19,15 +23,18 @@ place where looking like everyone else costs the most.
 
 ## Bio
 
-The one that ships:
+A bio is a different limit from a post: **160 characters**, and X does not
+shorten a link inside one, so the domain is counted in full. All three below are
+measured.
+
+The one that ships, 149:
 
 ```
-A launchpad on Robinhood Chain. One transaction: the token is minted, the pool
-opens, and the pool's share goes down into a contract with no pump on it.
+A launchpad on Robinhood Chain. One transaction: the token is minted, the pool opens, and the pool's share drops where there is no pump.
 drainpad.fun
 ```
 
-Two alternates, if that reads long on a phone:
+Two alternates, 90 and 112, if that reads long on a phone:
 
 ```
 Water finds the lowest point and stays there. A launchpad on Robinhood Chain.
@@ -35,8 +42,7 @@ drainpad.fun
 ```
 
 ```
-What goes down the drain does not come back up. Launch a token in one
-transaction. Robinhood Chain.
+What goes down the drain does not come back up. Launch a token in one transaction. Robinhood Chain.
 drainpad.fun
 ```
 
