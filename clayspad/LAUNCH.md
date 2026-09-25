@@ -27,6 +27,24 @@ unset DEPLOYER_KEY
 The key belongs to `0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485`. The scripts
 check that and stop if a different key is loaded, before anything is sent.
 
+## The test launch already happened
+
+`Clayspad Test` (`$CTEST`) went out on 2026-09-25 as piece #0, from a throwaway
+wallet, with no metadata. It is at
+`0xE91E3c630Ff6c43E328d2bC83690d8A96c6306bb`, verified on Blockscout with the
+MIT licence and on Sourcify at `exact_match`.
+
+What it proved, read back off the chain rather than assumed: the split landed on
+exactly 750,000,000 and 250,000,000; the kiln ended with a balance of **zero**,
+meaning it kept nothing back and put its whole share into the pool; one token
+was burned as quantisation dust; and the site read the opening market cap back
+as **1.7234 ETH** against a configured floor of 1.7 — a rounding difference, not
+a factor of 10^18, which is what a mistake in the price inversion would have
+produced.
+
+The real launch is section 4. The rest of this section is kept for whenever
+another test is wanted.
+
 ## 1. The test launch
 
 Put the test wallet's address in a variable. **This is the only line to edit** —
@@ -85,6 +103,14 @@ is what the test is for.
 
 Same shape, with the real supply wallet out of `clayspad.config.json` — so no
 `SUPPLY_WALLET` override this time.
+
+**Run this from the wallet that should own the fee.** Whoever sends the launch
+transaction is recorded as the creator, and the creator's share of every swap
+goes to that address for as long as the token trades. The test used a throwaway
+wallet on purpose; the real one must not. That is why this step needs
+`DEPLOYER_KEY` and cannot be done for you.
+
+It will be piece #1. Piece #0 is the test, and it stays there.
 
 ```bash
 NAME="Clayspad" SYMBOL="CLAY" npm run launch

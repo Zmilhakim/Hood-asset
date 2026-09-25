@@ -27,7 +27,8 @@ import { fileURLToPath } from "node:url";
 import { encodeAbiParameters, parseAbiParameters } from "viem";
 
 import { configAddress, loadConfig } from "./lib/config.mjs";
-import { fail } from "./lib/env.mjs";
+import { connect, fail } from "./lib/env.mjs";
+import { readArtifact } from "./lib/artifacts.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SERVER = (process.env.SOURCIFY_URL || "https://sourcify.dev/server").replace(/\/$/, "");
@@ -40,6 +41,46 @@ if (!deployed.launchpad) fail("nothing deployed yet — run `npm run deploy` fir
 
 const poolManager = configAddress(config, "poolManager", "POOL_MANAGER", { what: "the v4 PoolManager" });
 const treasury = configAddress(config, "treasury", "TREASURY", { what: "where the treasury's share goes" });
+
+/**
+ * Every token the launchpad has minted, and the arguments it minted them with.
+ *
+ * The same reconstruction `verify.mjs` does: a launched token's constructor took
+ * six values, and all six are in the piece the launchpad recorded. So a token
+ * launched a year ago is still verifiable from the chain alone, with nothing
+ * anybody had to write down.
+ */
+async function launchedTokens() {
+  const { publicClient } = await connect();
+  const abi = readArtifact("Clayspad").abi;
+  const read = (functionName, args = []) =>
+    publicClient.readContract({ address: deployed.launchpad, abi, functionName, args });
+
+  const kiln = deployed.kiln ?? (await read("kiln"));
+  const count = await read("pieceCount");
+  if (count === 0n) return [];
+
+  const targets = [];
+  for (let id = 0n; id < count; id++) {
+    const piece = await read("pieceAt", [id]);
+    targets.push({
+      id: `ClayToken.sol:ClayToken`,
+      label: `ClayToken #${id} (${piece.symbol})`,
+      address: piece.token,
+      args: encodeAbiParameters(parseAbiParameters("string, string, address, uint256, address, uint256"), [
+        piece.name,
+        piece.symbol,
+        kiln,
+        piece.toPool,
+        piece.supplyWallet,
+        piece.toSupplyWallet,
+      ]),
+    });
+  }
+  return targets;
+}
+
+TARGETS.push(...(await launchedTokens()));
 
 const stdJsonInput = JSON.parse(readFileSync(join(here, "out", "solc-input.json"), "utf8"));
 
@@ -89,7 +130,7 @@ console.log(`compiler   ${COMPILER}\n`);
 let failures = 0;
 
 for (const target of TARGETS) {
-  console.log(`${target.id.padEnd(24)} ${target.address}`);
+  console.log(`${(target.label ?? target.id).padEnd(26)} ${target.address}`);
 
   const response = await fetch(`${SERVER}/v2/verify/${CHAIN_ID}/${target.address}`, {
     method: "POST",
@@ -107,12 +148,12 @@ for (const target of TARGETS) {
   // Already verified is a success, not a failure: the point is the state, not
   // who put it there.
   if (response.status === 409 || body.customCode === "already_verified") {
-    console.log(`${"".padEnd(24)} already verified\n`);
+    console.log(`${"".padEnd(26)} already verified\n`);
     continue;
   }
 
   if (!response.ok || !body.verificationId) {
-    console.error(`${"".padEnd(24)} rejected (${response.status}): ${JSON.stringify(body).slice(0, 220)}\n`);
+    console.error(`${"".padEnd(26)} rejected (${response.status}): ${JSON.stringify(body).slice(0, 220)}\n`);
     failures++;
     continue;
   }
@@ -120,15 +161,15 @@ for (const target of TARGETS) {
   const job = await awaitJob(body.verificationId);
 
   if (job.error) {
-    console.error(`${"".padEnd(24)} ${job.error}\n`);
+    console.error(`${"".padEnd(26)} ${job.error}\n`);
     failures++;
   } else if (job.error_id || job.errorId) {
-    console.error(`${"".padEnd(24)} failed: ${job.errorId ?? job.error_id} ${job.message ?? ""}\n`);
+    console.error(`${"".padEnd(26)} failed: ${job.errorId ?? job.error_id} ${job.message ?? ""}\n`);
     failures++;
   } else {
     const match = job.contract?.match ?? job.match ?? "verified";
-    console.log(`${"".padEnd(24)} ${match}`);
-    console.log(`${"".padEnd(24)} https://repo.sourcify.dev/${CHAIN_ID}/${target.address}\n`);
+    console.log(`${"".padEnd(26)} ${match}`);
+    console.log(`${"".padEnd(26)} https://repo.sourcify.dev/${CHAIN_ID}/${target.address}\n`);
   }
 }
 
