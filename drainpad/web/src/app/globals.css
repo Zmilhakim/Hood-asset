@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  /* Wet asphalt after rain. Neutral-cold, so the one warm colour on the page
+     is unmistakably paint rather than light. */
+  --color-asphalt: #0b0c0d;
+  --color-asphalt-deep: #060708;
+  --color-slab: #131517;
+  --color-slab-high: #191c1f;
+  --color-kerb: #24282c;
+  --color-kerb-bright: #343a40;
+
+  /* Stencil paint. Municipal amber, the colour of a warning nobody reads until
+     it matters. The only saturated colour here, so it always means something. */
+  --color-paint: #f0a02c;
+  --color-paint-deep: #a96c14;
+  --color-paint-wash: #2a1f0e;
+
+  /* Standing water, for the second voice: cold, quiet, never the accent. */
+  --color-water: #6aa7b4;
+  --color-water-deep: #1b2f35;
+
+  /* Type. */
+  --color-chalk: #eceae5;
+  --color-grit: #8b8f93;
+  --color-grit-dim: #61666a;
+
+  --color-rust: #d95b3c;
+
+  --font-display: var(--font-archivo), "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-asphalt);
+    /* Damp: light pooling at the top, a wash of standing water low and left. */
+    background-image:
+      radial-gradient(70rem 26rem at 50% -10rem, rgb(240 160 44 / 0.06), transparent 72%),
+      radial-gradient(48rem 30rem at 6% 42rem, rgb(106 167 180 / 0.05), transparent 70%);
+    background-repeat: no-repeat;
+    color: var(--color-chalk);
+    font-family: var(--font-body);
+    margin: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-paint);
+    color: var(--color-asphalt-deep);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-paint);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+/* A poured slab: the surface every panel is cast from. Square corners, because
+   nothing municipal is rounded. */
+@utility slab {
+  background-color: var(--color-slab);
+  border: 1px solid var(--color-kerb);
+}
+
+/* Paint stencilled on the kerb: the small uppercase label that names a thing. */
+@utility stencil {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-paint);
+}
+
+@utility stencil-dim {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-grit);
+}
+
+/* The grate itself: horizontal slats with the dark between them. Used wherever
+   the page passes from one level down to the next. */
+@utility grate-bars {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--color-kerb-bright) 0px,
+    var(--color-kerb-bright) 3px,
+    transparent 3px,
+    transparent 11px
+  );
+}
+
+/* Hazard stripes, painted at an angle across the kerb. */
+@utility hazard {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-paint-deep) 0px,
+    var(--color-paint-deep) 6px,
+    transparent 6px,
+    transparent 14px
+  );
+}
+
+/* Addresses and anything else that has to line up. */
+@utility figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Light mode is a wet pavement at noon rather than a second theme: the same
+   materials, lit from above. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --color-asphalt: #e9e7e2;
+    --color-asphalt-deep: #dbd8d1;
+    --color-slab: #f6f5f2;
+    --color-slab-high: #ffffff;
+    --color-kerb: #cfccc4;
+    --color-kerb-bright: #b3afa5;
+    --color-paint: #a2620a;
+    --color-paint-deep: #d99a2b;
+    --color-paint-wash: #f7ecd7;
+    --color-water: #2f6b78;
+    --color-water-deep: #dfeaec;
+    --color-chalk: #16181a;
+    --color-grit: #5c6165;
+    --color-grit-dim: #7d8286;
+    --color-rust: #a93c22;
+  }
+}
