@@ -29,4 +29,15 @@ always bright. This is deliberately the inverse of the other launchpads in this
 repository, which are lit objects in dark rooms, and the two should never be
 mistaken for each other.
 
-Generated images go in `out/`, which is not committed.
+## What is in `out/`
+
+The images that were generated from these prompts and then cropped to the ratios
+each surface actually wants. Generators return whatever aspect ratio they feel
+like, so none of these came back usable as-is.
+
+| File | Where it goes |
+| --- | --- |
+| `x-avatar-1000.jpg` | The X avatar — the icon alone, safe to crop round |
+| `logo-lockup-1000.jpg` | Icon with the wordmark, for anywhere the square is never cropped |
+| `x-banner-1500x500.jpg` | The X header — loose drift on the left, crevasse on the right, empty middle |
+| `og-1200x628.jpg` | The link preview, also served by the site at `/brand/og-1200x628.jpg` |

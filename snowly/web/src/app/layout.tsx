@@ -38,8 +38,14 @@ export const metadata: Metadata = {
     siteName: "Snowly",
     title: "Snowly — what the glacier takes, it keeps",
     description,
+    images: [{ url: "/brand/og-1200x628.jpg", width: 1200, height: 628, alt: "Snowly" }],
   },
-  twitter: { card: "summary_large_image", title: "Snowly", description },
+  twitter: {
+    card: "summary_large_image",
+    title: "Snowly",
+    description,
+    images: ["/brand/og-1200x628.jpg"],
+  },
 };
 
 export const viewport: Viewport = {

@@ -25,6 +25,8 @@ back.
 That is the shape of this launchpad.
 
 snowly.fun
+
+Deployer: 0xd1191cd18b45dF695F040f7988D54a09d0592d24
 ```
 
 ## The follow-up, with the addresses
@@ -42,6 +44,8 @@ Glacier · 0x41d7B78cB5Cfce16509D4B8fFf0e572EC43a7C7A
 
 The supply, the split and the fee are constants in there. Read them at the
 source rather than taking a post's word for it.
+
+Deployer: 0xd1191cd18b45dF695F040f7988D54a09d0592d24
 ```
 
 ## On the glacier
@@ -156,10 +160,33 @@ snowly.fun/launch
 
 ---
 
+## The deployer address
+
+```
+0xd1191cd18b45dF695F040f7988D54a09d0592d24
+```
+
+It closes the launch announcement and the contracts post. It is the address that
+deployed the launchpad, and the launchpad deployed the hook and the glacier in
+its own constructor — so all three trace back to this one address, and the
+explorer already shows it as the launchpad's creator. Putting it in the post
+reveals nothing that is not on chain; it saves a reader the lookup and lets them
+tie the contracts to a single origin without trusting the post to have listed
+them all.
+
+Keep it as the last line, on its own, with a blank line above it. It is a thing
+to check, not part of the sentence before it.
+
+Add it to the other posts only if they are being used as a first introduction.
+On a short post about the mechanism it reads as a signature nobody asked for.
+
+---
+
 ## Before any of these goes out
 
 1. Check every address against the chain, not against this file. `npm run
    status` in `contracts/` prints what the launchpad and the pool manager
-   actually say.
+   actually say, and the deployer is the creator recorded on each contract's
+   page on the explorer.
 2. Read the wordmark in the image letter by letter. Generators misspell it.
 3. Confirm there is no number in the post that belongs in the contract.
