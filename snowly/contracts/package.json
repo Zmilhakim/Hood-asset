@@ -15,7 +15,8 @@
     "collect": "node collect.mjs",
     "verify": "node verify.mjs",
     "verify:sourcify": "node sourcify.mjs",
-    "verify:browser": "node verify-browser.mjs"
+    "verify:browser": "node verify-browser.mjs",
+    "preflight": "node preflight.mjs"
   },
   "license": "MIT",
   "dependencies": {
