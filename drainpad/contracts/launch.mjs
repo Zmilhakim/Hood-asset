@@ -111,8 +111,27 @@ const [, token] = result;
 console.log(`\nwould deploy the token at ${token}`);
 
 if (process.env.CONFIRM !== "launch") {
-  console.log(`\nNothing was sent. To send it:\n`);
-  console.log(`    NAME="${params.name}" SYMBOL="${params.symbol}" CONFIRM=launch npm run launch`);
+  // Every override this run was given is repeated back, not just the two that
+  // are always set. A line printed here gets pasted verbatim, so one that
+  // quietly drops SUPPLY_WALLET sends the supply somewhere the reader did not
+  // choose — and a launch cannot be taken back.
+  const overrides = [
+    ["IMAGE", process.env.IMAGE],
+    ["BLURB", process.env.BLURB],
+    ["LINK", process.env.LINK],
+    ["SUPPLY_WALLET", process.env.SUPPLY_WALLET],
+    ["FLOOR_ETH", process.env.FLOOR_ETH],
+    ["CEIL_ETH", process.env.CEIL_ETH],
+    ["TICK_SPACING", process.env.TICK_SPACING],
+    ["LAUNCHPAD", process.env.LAUNCHPAD],
+    ["RPC_URL", process.env.RPC_URL],
+  ]
+    .filter(([, value]) => value)
+    .map(([name, value]) => `${name}="${value}" `)
+    .join("");
+
+  console.log(`\nNothing was sent. To send it, all on one line:\n`);
+  console.log(`    ${overrides}NAME="${params.name}" SYMBOL="${params.symbol}" CONFIRM=launch npm run launch`);
   process.exit(0);
 }
 
