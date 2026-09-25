@@ -1,0 +1,36 @@
+{
+  "name": "drainpad-contracts",
+  "version": "1.0.0",
+  "description": "Drainpad: a launchpad whose pools charge one 4% fee, kept by a Uniswap v4 hook, with three quarters of every supply sunk into the pool for good",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "compile": "node compile.mjs",
+    "pretest": "node compile.mjs",
+    "test": "node --test test/*.test.mjs",
+    "mine": "node mine.mjs",
+    "deploy": "node deploy.mjs",
+    "launch": "node launch.mjs",
+    "status": "node status.mjs",
+    "collect": "node collect.mjs",
+    "verify": "node verify.mjs",
+    "verify:sourcify": "node sourcify.mjs",
+    "verify:browser": "node verify-browser.mjs",
+    "preflight": "node preflight.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "@uniswap/v4-core": "^1.0.2",
+    "@uniswap/v4-periphery": "^1.0.3",
+    "solc": "0.8.26"
+  },
+  "devDependencies": {
+    "@ethereumjs/common": "^10.1.3",
+    "@ethereumjs/evm": "^10.1.3",
+    "@ethereumjs/util": "^10.1.3",
+    "@ethereumjs/vm": "^10.1.3",
+    "viem": "^2.56.5",
+    "playwright-core": "^1.63.0"
+  }
+}
