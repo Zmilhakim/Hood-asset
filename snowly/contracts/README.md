@@ -145,6 +145,34 @@ Both scripts read their list from `lib/targets.mjs` — the addresses, the
 constructor arguments and the MIT licence are described once, so the two cannot
 drift into claiming different things.
 
+### The licence can be lost to something other than Sourcify
+
+Two of the three contracts here ended up recorded as `license_type: none`
+despite being submitted with `license_type=mit`, and Sourcify was not the cause —
+the API says so directly:
+
+```
+Snowly    is_verified_via_eth_bytecode_db: true   is_verified_via_sourcify: false   license_type: none
+SnowHook  is_verified_via_eth_bytecode_db: false  is_verified_via_sourcify: false   license_type: mit
+```
+
+Blockscout also pulls verified source from a shared bytecode database (the
+Verifier Alliance). When it finds a match there it records the contract as
+verified from that import, and the import carries no licence. Submitting first
+does not reliably prevent it: the import can land on a contract that was already
+verified locally and replace what it holds.
+
+There is no endpoint to set the licence afterwards. Re-submitting is answered
+`429` until the verification rate limit resets, and `"Already verified"` after
+that.
+
+**What this means in practice:** the licence field on an explorer is a label,
+and a label that can be overwritten by a third party is not where a licence
+lives. What binds is `// SPDX-License-Identifier: MIT` on the first line of
+every source file — that travels with the source itself, shows in the verified
+source on the explorer, and nothing can import it away. Check the field, try to
+fix it, and do not treat it as the licence.
+
 ### The rate limit
 
 Blockscout rate-limits verification, and three standard-JSON submissions in a
