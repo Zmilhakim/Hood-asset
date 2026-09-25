@@ -55,34 +55,53 @@ enough.
 
 ## 3. The test launch
 
-Put a wallet you control in a variable. **This is the only line to edit** —
-everything after it is complete as written.
+**Always before the real one.** A launch cannot be undone: the token is recorded
+on the launchpad forever and shows on the site, so a wrong figure or a failed
+attempt belongs on a token whose name already says it is not the real thing.
 
-```bash
-export TEST_WALLET=0x0000000000000000000000000000000000000000
+Two rules for it:
+
+**No metadata.** `IMAGE`, `BLURB` and `LINK` default to empty, so leaving them
+out is the whole of it. A test token should carry nothing that makes it look
+like a launch anybody was meant to buy.
+
+**A separate supply wallet.** Never the real token's wallet — a test balance and
+a real one should not land in the same place. The wallet below exists only for
+this and holds nothing else:
+
+```
+0x00a80bd955AB8117A68710BE855B23A72b2e7F78
 ```
 
-Then print the plan. This sends nothing:
+Its private key is not in this repository and never will be. It is a throwaway:
+it receives test tokens, it is never funded, and it must not be used for
+anything that has value.
+
+The deployer stays the same, because it is the address holding gas and the
+scripts check it against the config. What changes for a test is where the supply
+goes, not who pays for the transaction.
+
+Print the plan. This sends nothing:
 
 ```bash
-SUPPLY_WALLET=$TEST_WALLET NAME="Snowly Test" SYMBOL="TSNOW" npm run launch
+SUPPLY_WALLET=0x00a80bd955AB8117A68710BE855B23A72b2e7F78 NAME="Snowly Test" SYMBOL="TSNOW" npm run launch
 ```
 
-Read what it prints: the supply split, the wallet the liquid fifth goes to, the
+Read what it prints — the supply split, the wallet the liquid share goes to, the
 range, and the address the token would land on. If it is right:
 
 ```bash
-SUPPLY_WALLET=$TEST_WALLET NAME="Snowly Test" SYMBOL="TSNOW" CONFIRM=launch npm run launch
+SUPPLY_WALLET=0x00a80bd955AB8117A68710BE855B23A72b2e7F78 NAME="Snowly Test" SYMBOL="TSNOW" CONFIRM=launch npm run launch
 ```
 
-`IMAGE`, `BLURB` and `LINK` default to empty, so the test carries no metadata
-without doing anything.
+## 4. Check the test, then verify it
 
-**A launch cannot be undone.** The test token becomes drift #0 and stays on the
-snowfield for as long as the launchpad exists. Name it so nobody could mistake
-it for the real thing — which is what `Snowly Test` / `TSNOW` is for.
+Open [snowly.fun/snowfield](https://snowly.fun/snowfield). The test token should
+appear, and its own page should show a price and what is in the pool — all read
+live from the chain. If any of it looks wrong, stop and say so before launching
+anything real. That is what the test is for.
 
-## 4. Verify the test token
+Then publish its source:
 
 ```bash
 npm run verify:browser
@@ -94,7 +113,8 @@ is nothing to type in.
 
 ## 5. The real launch
 
-Same shape, with the real supply wallet out of `snowly.config.json` — so no
+Only once the test has been launched, checked on the site and verified. Same
+shape, with the real supply wallet out of `snowly.config.json` — so no
 `SUPPLY_WALLET` override this time.
 
 ```bash
