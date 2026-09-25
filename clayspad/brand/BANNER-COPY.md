@@ -86,12 +86,15 @@ Two consequences to be aware of rather than to work around:
   still true. Do not let it slide into "the whole supply" or "all of it", which
   would be false and is the exact shape of mistake this rule exists to prevent.
 
-## The domain may go on it, the handle may not
+## The domain and the handle are both yours now
 
-`clayspad.fun` is registered and live, so it can go on the banner. **The handle
-is not registered yet**, so it must not — come back and change this line once it
-is. Hoodpad shipped a banner printing `HOODPAD.FUN` and `@HOODPAD` when neither
-was, which is why this is a rule here rather than a preference.
+`clayspad.fun` and `@clayspad` are both registered, so either may go on the
+banner. Neither has to: X prints the handle in its own chrome already, so it
+earns its place only on art that travels away from the profile.
+
+The rule this replaces was about printing something before owning it. Hoodpad
+shipped a banner with `HOODPAD.FUN` and `@HOODPAD` when neither was registered
+— that is the mistake, and it no longer applies here.
 
 ## A note on the ratio
 

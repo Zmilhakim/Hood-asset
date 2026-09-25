@@ -88,30 +88,48 @@ Images are generated from [`PROMPTS.md`](PROMPTS.md).
 
 ## The launch announcement
 
-The one to post when $CLAY goes out, with `out/post-launch-en.jpg` attached.
-The image says "The fire is lit." and this says the mechanism — between them a
-reader gets two things rather than one twice. It ends on the deployer wallet, which is
-the address that **will** deploy the token — not the token's own address, which
-does not exist until the launch transaction is mined.
+**Every post in this file is measured.** A free X account stops at 280
+characters, and a link counts as 23 whatever its length — X wraps everything
+through t.co, so `clayspad.fun` costs 23, not 12. Images cost nothing, so the
+picture is always free to attach.
 
-That distinction is the whole value of posting it. Published in advance, it lets
-anyone check a launch against it the moment a fake appears; posted as if it were
-a contract address, it invites people to buy something that is not there. Keep
-the label on it.
+It ends on the deployer wallet, which is the address that **will** deploy the
+token — not the token's own address, which does not exist until the launch
+transaction is mined. That distinction is the whole value of posting it.
+Published in advance, it lets anyone check a launch against it the moment a
+fake appears; posted as if it were a contract address, it invites people to buy
+something that is not there. Keep the label on it.
+
+Attach `out/post-launch-en.jpg`.
+
+### Use this one — 260 characters
 
 > Clayspad is launching $CLAY on Robinhood Chain.
 >
-> One transaction mints the supply, splits it, opens a Uniswap v4 pool against
-> ETH and puts the pool's share in. That share is not coming back out — not
-> because we promise it won't, but because no function exists that could move it.
+> The kiln has no door: what goes into the pool does not come back out.
 >
 > clayspad.fun
 >
-> $CLAY will be deployed from this wallet, and from no other:
+> $CLAY deploys from this wallet and no other:
 > 0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485
 >
-> Anything that launches from a different address is not ours. Check it before
-> you touch it.
+> Anything else is not ours.
+
+### Shorter, if it needs room — 175 characters
+
+> $CLAY is launching on Robinhood Chain.
+>
+> Deployed from this wallet and no other:
+> 0xBF9a58Ca76739d815d8F2c6D54538E77A0a27485
+>
+> Anything else is not ours.
+>
+> clayspad.fun
+
+The wallet keeps its 42 characters in both. It is the one thing a reader cannot
+get anywhere else, and the first thing an impersonator makes impossible to check
+if it was never published. What gets cut instead is explanation — that belongs
+on `/learn`, not in the post that announces the thing.
 
 ### The follow-up, once it is actually mined
 

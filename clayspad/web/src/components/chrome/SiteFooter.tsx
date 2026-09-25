@@ -20,6 +20,20 @@ export function SiteFooter() {
             <Link href="/shelf" className="micro text-paper-faint transition-colors hover:text-signal">
               The shelf
             </Link>
+            {/*
+              The account is printed here on purpose. A handle somebody else
+              holds can be pointed at anything, and the only defence against an
+              impersonator is that the real one is written where a reader can
+              look it up without leaving the site.
+            */}
+            <a
+              href="https://x.com/clayspad"
+              rel="me noreferrer"
+              target="_blank"
+              className="micro text-paper-faint transition-colors hover:text-signal"
+            >
+              @clayspad ↗
+            </a>
           </nav>
         </div>
 

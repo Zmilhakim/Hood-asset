@@ -24,17 +24,18 @@ Alternatives: `Clayspad` (8) · `Clayspad — a launchpad, fired shut` (34)
 
 ## Handle
 
-Nothing here is registered yet, and this file will say so until it is. Check
-these in order and write down which one you took, with the date — a handle
-somebody else holds can be pointed at anything, and the only defence is that the
-real one is written somewhere people can check:
+```
+@clayspad
+```
 
-1. `@clayspad`
-2. `@getclayspad`
-3. `@clayspad_xyz`
+**Registered 2026-09-25.** The short one, which is the outcome worth writing
+down precisely because it usually is not: `@hoodpad` was already taken when
+Hoodpad went looking, and that is the ordinary result.
 
-Assume the short one is gone and be glad if it is not. `@hoodpad` was taken when
-Hoodpad went looking, which is the ordinary outcome rather than the unlucky one.
+It matters that this is recorded somewhere checkable. A handle somebody else
+holds can be pointed at anything, and the only defence against an impersonator
+is that the real one is written down where people can look it up — here, and on
+the site.
 
 ## Bio — max 160
 
@@ -95,14 +96,14 @@ worth knowing before you do:
 
 The text that goes on the banner is in [`BANNER-COPY.md`](BANNER-COPY.md).
 
-**The domain is now registered**, so `clayspad.fun` may go on an image if you
-want it there. **The handle is not**, so it must not — and neither should go on
-the art by default. X already shows both in its own profile chrome, and an image
-repeating them is one more thing that can go stale or turn out to be wrong.
+**Both are registered now**, so `clayspad.fun` and `@clayspad` may go on an
+image. Neither has to. X already shows both in its own profile chrome, and an
+image repeating them is one more thing to keep in sync — worth it on a banner
+that travels off the profile, pointless on the avatar.
 
-This is not a style preference. Hoodpad shipped a banner printing `HOODPAD.FUN`
-and `@HOODPAD` when neither was registered. **Do not put a handle on an image
-before it is yours** — and come back and edit this paragraph once it is.
+The rule this replaces was about publishing something before it was yours.
+Hoodpad shipped a banner printing `HOODPAD.FUN` and `@HOODPAD` when neither was
+registered. That is the mistake to avoid, and it no longer applies here.
 
 **And no figures on any image either.** Not the supply, not the split, not the
 fee. See below.
