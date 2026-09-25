@@ -4,7 +4,7 @@ English throughout, like everything this account puts out.
 
 ## Ticker
 
-`$DRAIN`.
+`$SUMP`.
 
 ## Handle
 

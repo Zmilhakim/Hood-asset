@@ -17,7 +17,7 @@ post cannot be checked against the chain. Posts point at the explorer instead.
 
 **Every post ends with the deployer address.** Last line, nothing after it.
 
-The ticker is **$DRAIN**.
+The ticker is **$SUMP**.
 
 ---
 
@@ -96,7 +96,7 @@ Deployer: 0xC064C11de4ED1e61B97F438FC0e1487E34eD8baD
 With `out/post-token-1200x675.jpg`. The zero address below is a placeholder for the real one, which does not exist until the launch — it is filled in from the receipt rather than typed ahead of time. It is the same length, so the count already accounts for it.
 
 ```
-$DRAIN is live.
+$SUMP is live.
 
 Minted, pooled and sunk in one transaction, through the same launchpad anyone else can use.
 

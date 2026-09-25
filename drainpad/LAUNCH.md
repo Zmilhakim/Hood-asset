@@ -146,13 +146,13 @@ real supply wallet out of `drainpad.config.json` — so no `SUPPLY_WALLET`
 override this time.
 
 ```bash
-cd /root/Hood-asset/drainpad/contracts && NAME="Drainpad" SYMBOL="DRAIN" npm run launch
+cd /root/Hood-asset/drainpad/contracts && NAME="Drainpad" SYMBOL="SUMP" npm run launch
 ```
 
 Read the plan, then:
 
 ```bash
-cd /root/Hood-asset/drainpad/contracts && NAME="Drainpad" SYMBOL="DRAIN" CONFIRM=launch npm run launch
+cd /root/Hood-asset/drainpad/contracts && NAME="Drainpad" SYMBOL="SUMP" CONFIRM=launch npm run launch
 ```
 
 Add `IMAGE=`, `BLURB=` and `LINK=` in front if the real token should carry them.
