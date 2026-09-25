@@ -143,8 +143,25 @@ const [, token] = result;
 console.log(`\nwould deploy the token at ${token}`);
 
 if (process.env.CONFIRM !== "launch") {
-  console.log(`\nNothing was sent. To send it:\n`);
-  console.log(`    NAME="${params.name}" SYMBOL="${params.symbol}" CONFIRM=launch npm run launch`);
+  // Printed with every override this run actually used, not just the two that
+  // are always there. A command that has to be edited before it works is a
+  // command that gets pasted unedited — and the failure it produces points
+  // somewhere else entirely, because the run silently falls back to the config.
+  const overrides = [
+    process.env.DEPLOYER && `DEPLOYER=${process.env.DEPLOYER}`,
+    process.env.SUPPLY_WALLET && `SUPPLY_WALLET=${process.env.SUPPLY_WALLET}`,
+    process.env.FLOOR_ETH && `FLOOR_ETH=${process.env.FLOOR_ETH}`,
+    process.env.CEIL_ETH && `CEIL_ETH=${process.env.CEIL_ETH}`,
+    process.env.IMAGE && `IMAGE="${process.env.IMAGE}"`,
+    process.env.BLURB && `BLURB="${process.env.BLURB}"`,
+    process.env.LINK && `LINK="${process.env.LINK}"`,
+  ].filter(Boolean);
+
+  console.log(`\nNothing was sent. To send it, exactly as it was just planned:\n`);
+  console.log(
+    `    ${[...overrides, `NAME="${params.name}"`, `SYMBOL="${params.symbol}"`, "CONFIRM=launch", "npm run launch"].join(" ")}`,
+  );
+  console.log(`\n    DEPLOYER_KEY has to still be set in this shell.`);
   process.exit(0);
 }
 
