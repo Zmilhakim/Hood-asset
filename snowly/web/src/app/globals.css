@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  /* Daylight on snow. Clayspad is a dark warm room; this is the opposite, and
+     deliberately so — the two should not be mistaken for each other. */
+  --color-field: #f4f8fb;
+  --color-field-deep: #e8f0f7;
+  --color-surface: #ffffff;
+
+  /* Meltwater: the blue that runs through packed ice. The only saturated
+     colour on the page, so it always means something. */
+  --color-melt: #0b6bd3;
+  --color-melt-deep: #06437f;
+  --color-melt-wash: #e3eefb;
+  --color-ice: #b9d9f2;
+
+  /* Stone under the glacier: the text, and the lines. */
+  --color-stone: #16202b;
+  --color-stone-soft: #46586b;
+  --color-stone-faint: #7d90a3;
+  --color-rime: #d8e4ef;
+
+  /* Warnings read as meltwater going wrong. */
+  --color-crevasse: #b4342a;
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-field);
+    /* Fallen snow: two faint horizontal drifts, no image request. */
+    background-image:
+      linear-gradient(180deg, #ffffff 0%, rgb(255 255 255 / 0) 22rem),
+      radial-gradient(60rem 22rem at 78% -6rem, rgb(11 107 211 / 0.07), transparent 70%);
+    background-repeat: no-repeat;
+    color: var(--color-stone);
+    font-family: var(--font-body);
+    margin: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-melt);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-melt);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* A cut face of packed snow: the surface every panel is carved from. */
+@utility snow-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-rime);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgb(22 32 43 / 0.04);
+}
+
+/* The thin blue line meltwater leaves. Used for the one thing that matters on a panel. */
+@utility melt-rule {
+  border-left: 2px solid var(--color-melt);
+}
+
+/* Numbers line up in columns or they are not worth printing. */
+@utility figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-stone-faint);
+}
+
+/* Polar night. Not a warm dark — the whole point is that it still reads as ice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-field: #0a1119;
+    --color-field-deep: #060c12;
+    --color-surface: #101a25;
+    --color-melt: #59a8f5;
+    --color-melt-deep: #9ccdfb;
+    --color-melt-wash: #12263c;
+    --color-ice: #1d3b5a;
+    --color-stone: #e7eef5;
+    --color-stone-soft: #a3b5c7;
+    --color-stone-faint: #6d8299;
+    --color-rime: #1e2d3d;
+    --color-crevasse: #f08a80;
+  }
+
+  :root:not([data-theme="light"]) body {
+    background-image:
+      linear-gradient(180deg, #14202d 0%, rgb(20 32 45 / 0) 22rem),
+      radial-gradient(60rem 22rem at 78% -6rem, rgb(89 168 245 / 0.10), transparent 70%);
+  }
+
+  :root:not([data-theme="light"]) .snow-panel {
+    box-shadow: none;
+  }
+}
