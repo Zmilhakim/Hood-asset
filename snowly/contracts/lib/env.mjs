@@ -1,12 +1,60 @@
 // Shared entry checks for the scripts that spend gas. Deploying the launchpad and
 // launching a token both do something that cannot be taken back, so everything
 // they can verify before broadcasting is verified here first.
-import { createPublicClient, defineChain, http, isAddress } from "viem";
+import { setDefaultResultOrder } from "node:dns";
+import { setDefaultAutoSelectFamily } from "node:net";
+
+import { createPublicClient, defineChain, fallback, http, isAddress } from "viem";
+
+/**
+ * Make Node dial IPv4 and stop racing the two families.
+ *
+ * Without this, every RPC call from this machine failed with a flat connect
+ * timeout while `curl` to the same host answered in about a second. The reason
+ * is in the error: Node lists the addresses it tried, and the IPv6 ones are
+ * there — it opens sockets to both families at once and waits, and on a link
+ * with no working IPv6 route that wait eats the entire ten-second budget its
+ * HTTP client allows for connecting. The request never reaches the endpoint.
+ *
+ * That budget cannot be raised without adding undici as a dependency, so the
+ * fix is to not spend it: resolve IPv4 first, and dial one address rather than
+ * racing. Both calls are guarded because they are recent additions to Node and
+ * an older runtime should degrade rather than crash.
+ *
+ * This lives here because every script that touches the chain imports this
+ * module, and it has to run before the first request rather than per call.
+ */
+try {
+  setDefaultResultOrder("ipv4first");
+  setDefaultAutoSelectFamily(false);
+} catch {
+  // An older Node without these knobs. The timeouts may come back; nothing else breaks.
+}
 import { privateKeyToAccount } from "viem/accounts";
 
 import { extsloadAbi } from "./pool.mjs";
 
 export const DEFAULT_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
+
+/**
+ * Every public endpoint for this chain, in the order worth trying.
+ *
+ * One is not enough. These scripts run from a phone over a mobile connection,
+ * and the failure that actually happens is not an endpoint going down — it is a
+ * connection that takes longer to establish than Node's HTTP client is willing
+ * to wait, which surfaces as a flat timeout even while `curl` to the same host
+ * succeeds. Node's connect timeout cannot be raised without pulling in undici,
+ * so the answer is to try again, and to try somewhere else.
+ *
+ * RPC_URL still wins when it is set, and is then the only one used — an operator
+ * naming an endpoint means that endpoint.
+ */
+export const FALLBACK_RPC_URLS = [
+  DEFAULT_RPC_URL,
+  "https://robinhood-rpc.publicnode.com",
+  "https://rpc.ordofi.network",
+  "https://robinhood.drpc.org",
+];
 export const ROBINHOOD_CHAIN_ID = 4663;
 
 export function fail(...lines) {
@@ -80,20 +128,33 @@ export function robinhoodChain(rpcUrl) {
 
 /** Connects, and refuses to go on if the endpoint is not the chain we meant. */
 export async function connect() {
-  const rpcUrl = process.env.RPC_URL || DEFAULT_RPC_URL;
+  const chosen = process.env.RPC_URL?.trim();
+  const urls = chosen ? [chosen] : FALLBACK_RPC_URLS;
+  const rpcUrl = urls[0];
   const chain = robinhoodChain(rpcUrl);
-  const publicClient = createPublicClient({ chain, transport: http() });
+
+  // Each endpoint gets three attempts before the next one is tried, and each
+  // attempt is allowed 30 seconds rather than the default. A slow link is the
+  // common case here, not a broken endpoint.
+  const publicClient = createPublicClient({
+    chain,
+    transport: fallback(
+      urls.map((url) => http(url, { timeout: 30_000, retryCount: 3, retryDelay: 800 })),
+      { rank: false },
+    ),
+  });
 
   let liveChainId;
   try {
     liveChainId = await publicClient.getChainId();
   } catch (error) {
     fail(
-      `cannot reach the RPC at ${rpcUrl}`,
+      `cannot reach any RPC for this chain.`,
+      ...urls.map((url) => `  tried ${url}`),
       `  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`,
       "",
-      "Public endpoints go down, rate-limit and get replaced. Point this at",
-      "another one and re-run:",
+      "Every endpoint above failed. If the connection itself is the problem,",
+      "waiting is usually enough. To name one explicitly:",
       "",
       "    export RPC_URL=https://…",
     );
@@ -106,7 +167,7 @@ export async function connect() {
     );
   }
 
-  console.log(`rpc        ${rpcUrl} (chain ${liveChainId})`);
+  console.log(`rpc        ${chosen ?? `${urls.length} endpoints, ${rpcUrl} first`} (chain ${liveChainId})`);
   return { chain, publicClient, rpcUrl };
 }
 
