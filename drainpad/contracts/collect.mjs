@@ -9,7 +9,7 @@
 import { createWalletClient, formatEther, http } from "viem";
 
 import { configAddress, loadConfig } from "./lib/config.mjs";
-import { connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
+import { rpcTransport, connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
 import { readArtifact } from "./lib/artifacts.mjs";
 
 const drainpadArtifact = readArtifact("Drainpad");
@@ -25,7 +25,7 @@ const launchpad = configAddress(config, "deployed.launchpad", "LAUNCHPAD", {
 });
 
 const account = requireDeployerKey();
-const { chain, publicClient } = await connect();
+const { chain, publicClient, rpcUrl } = await connect();
 if (chain.id !== config.chainId) fail(`drainpad.config.json says chain ${config.chainId}, not ${chain.id}`);
 
 const hook = await publicClient.readContract({ address: launchpad, abi: drainpadArtifact.abi, functionName: "grate" });
@@ -85,7 +85,7 @@ if (process.env.CONFIRM !== "collect") {
   process.exit(0);
 }
 
-const wallet = createWalletClient({ account, chain, transport: http() });
+const wallet = createWalletClient({ account, chain, transport: rpcTransport(rpcUrl) });
 const hash = await wallet.writeContract(request);
 console.log(`\ntx         ${hash}`);
 

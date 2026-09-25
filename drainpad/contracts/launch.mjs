@@ -14,7 +14,7 @@
 import { createWalletClient, formatEther, http, parseEventLogs } from "viem";
 
 import { configAddress, configNumber, configPrice, loadConfig } from "./lib/config.mjs";
-import { connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
+import { rpcTransport, connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
 import { readArtifact } from "./lib/artifacts.mjs";
 import { drainpadPoolKey } from "./lib/pool.mjs";
 import { amountsInPosition, ethPerTokenFromSqrtPrice, launchRange, pricePerToken } from "./lib/ticks.mjs";
@@ -39,7 +39,7 @@ const supplyWallet = configAddress(config, "supplyWallet", "SUPPLY_WALLET", {
 });
 
 const account = requireDeployerKey();
-const { chain, publicClient } = await connect();
+const { chain, publicClient, rpcUrl } = await connect();
 if (chain.id !== config.chainId) fail(`drainpad.config.json says chain ${config.chainId}, not ${chain.id}`);
 
 const WHOLE_SUPPLY = 1_000_000_000n;
@@ -116,7 +116,7 @@ if (process.env.CONFIRM !== "launch") {
   process.exit(0);
 }
 
-const wallet = createWalletClient({ account, chain, transport: http() });
+const wallet = createWalletClient({ account, chain, transport: rpcTransport(rpcUrl) });
 const hash = await wallet.writeContract(request);
 console.log(`\ntx         ${hash}`);
 

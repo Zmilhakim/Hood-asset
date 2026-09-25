@@ -8,7 +8,7 @@
 import { createWalletClient, formatEther, http } from "viem";
 
 import { configAddress, loadConfig, recordDeployed } from "./lib/config.mjs";
-import { checkPoolManager, connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
+import { rpcTransport, checkPoolManager, connect, fail, requireDeployerKey, requireEnv } from "./lib/env.mjs";
 import { flagsOf, hasFlags, hookInitCode, mineHookSalt, predictLaunchpad } from "./lib/hooks.mjs";
 import { readArtifact } from "./lib/artifacts.mjs";
 
@@ -43,7 +43,7 @@ if (account.address.toLowerCase() !== intendedDeployer.toLowerCase()) {
   );
 }
 
-const { chain, publicClient } = await connect();
+const { chain, publicClient, rpcUrl } = await connect();
 if (chain.id !== config.chainId) fail(`drainpad.config.json says chain ${config.chainId}, not ${chain.id}`);
 
 await checkPoolManager(publicClient, poolManager);
@@ -70,7 +70,7 @@ if (treasury.toLowerCase() === account.address.toLowerCase()) {
   console.log("           key that signs deploys is a poor place to accumulate fees.");
 }
 
-const wallet = createWalletClient({ account, chain, transport: http() });
+const wallet = createWalletClient({ account, chain, transport: rpcTransport(rpcUrl) });
 const hash = await wallet.deployContract({
   abi: drainpadArtifact.abi,
   bytecode: `0x${drainpadArtifact.evm.bytecode.object}`,

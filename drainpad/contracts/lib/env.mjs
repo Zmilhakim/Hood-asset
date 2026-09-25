@@ -1,13 +1,51 @@
 // Shared entry checks for the scripts that spend gas. Deploying the launchpad and
 // launching a token both do something that cannot be taken back, so everything
 // they can verify before broadcasting is verified here first.
+import { setDefaultResultOrder } from "node:dns";
+import { setDefaultAutoSelectFamily } from "node:net";
+
 import { createPublicClient, defineChain, http, isAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { extsloadAbi } from "./pool.mjs";
 
+/**
+ * Make Node connect over IPv4, and to one address at a time.
+ *
+ * The RPC sits behind Cloudflare, which answers DNS with two IPv4 addresses and
+ * two IPv6 ones. Node races all four at once — "happy eyeballs" — on a ten
+ * second connect budget that nothing in viem can raise, and on a link with no
+ * working IPv6 route the two v6 attempts hang for the whole ten seconds and take
+ * the other two down with them. curl reaches the same endpoint in under two.
+ *
+ * The symptom is a script reporting "cannot reach the RPC" about an endpoint
+ * that is up, which sends the reader hunting for another one. So the race is
+ * turned off and IPv4 put first, which is the difference between a connection
+ * that fails and one that takes two seconds.
+ */
+setDefaultResultOrder("ipv4first");
+setDefaultAutoSelectFamily(false);
+
 export const DEFAULT_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
 export const ROBINHOOD_CHAIN_ID = 4663;
+
+/**
+ * How long to wait on the RPC, and how many times to ask again.
+ *
+ * viem's default is ten seconds and no patience for a slow answer, which is
+ * fine on a datacentre link and wrong on a phone: the public endpoint is up and
+ * simply takes longer than that to reply over a mobile connection, and the
+ * script was reporting "cannot reach the RPC" for what was actually a slow one.
+ * Being slow and being down want different answers, so this waits.
+ *
+ * RPC_TIMEOUT_MS and RPC_RETRIES change both.
+ */
+export const RPC_TIMEOUT_MS = Number(process.env.RPC_TIMEOUT_MS ?? 60_000);
+export const RPC_RETRIES = Number(process.env.RPC_RETRIES ?? 4);
+
+/** The one place the transport is configured, so every client agrees. */
+export const rpcTransport = (url) =>
+  http(url, { timeout: RPC_TIMEOUT_MS, retryCount: RPC_RETRIES, retryDelay: 1_500 });
 
 export function fail(...lines) {
   for (const line of lines) console.error(line);
@@ -82,7 +120,7 @@ export function robinhoodChain(rpcUrl) {
 export async function connect() {
   const rpcUrl = process.env.RPC_URL || DEFAULT_RPC_URL;
   const chain = robinhoodChain(rpcUrl);
-  const publicClient = createPublicClient({ chain, transport: http() });
+  const publicClient = createPublicClient({ chain, transport: rpcTransport(rpcUrl) });
 
   let liveChainId;
   try {
@@ -92,7 +130,13 @@ export async function connect() {
       `cannot reach the RPC at ${rpcUrl}`,
       `  ${error.shortMessage ?? error.message?.split("\n")[0] ?? error}`,
       "",
-      "Public endpoints go down, rate-limit and get replaced. Point this at",
+      `It was given ${RPC_TIMEOUT_MS / 1000}s and ${RPC_RETRIES} retries, so this is the endpoint`,
+      "being unreachable rather than merely slow. On a phone or a bad line, more",
+      "patience sometimes is the fix:",
+      "",
+      "    export RPC_TIMEOUT_MS=180000",
+      "",
+      "Public endpoints also go down, rate-limit and get replaced. Point this at",
       "another one and re-run:",
       "",
       "    export RPC_URL=https://…",
