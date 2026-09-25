@@ -31,6 +31,8 @@ web/         the site: the shelf, a launch form, and what each pool is doing
 brand/       the copy, the palette, and the prompts the images are generated from
 ```
 
+[`LAUNCH.md`](LAUNCH.md) is the order to launch in, start to finish.
+
 Start with [`contracts/README.md`](contracts/README.md) for the mechanism,
 [`web/README.md`](web/README.md) for running the site, and
 [`brand/PROMPTS.md`](brand/PROMPTS.md) for the images.
