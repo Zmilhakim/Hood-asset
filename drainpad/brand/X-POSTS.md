@@ -114,8 +114,9 @@ Deployer: 0xC064C11de4ED1e61B97F438FC0e1487E34eD8baD
 
 ## 6 · The token, once it is launched
 
-The token's own address goes in the gap. It does not exist until the launch, so
-it is filled in from the receipt rather than typed ahead of time.
+With `out/post-token-1200x675.jpg`. The token's own address goes in the gap — it
+does not exist until the launch, so it is filled in from the receipt rather than
+typed ahead of time.
 
 ```
 $DRAIN is live.
